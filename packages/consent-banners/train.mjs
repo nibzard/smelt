@@ -3,11 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import {spawnSync} from 'node:child_process';
+import {readFileSync} from 'node:fs';
 import {performance} from 'node:perf_hooks';
 
 import {runFrozenSnapshot} from '@smelt-oss/capture/replay';
 import {evaluate} from '@smelt-oss/pilot';
 import {type} from '@smelt-oss/runtime';
+import {createModelArtifact, readModelArtifact, rulesHash, scorePackedForest} from './model.mjs';
 import {
     CANDIDATE_TYPE,
     RULE_NAMES,
@@ -30,6 +32,10 @@ function sigmoid(value) {
 
 function compactNumber(value) {
     return Number.isFinite(value) ? Number(value.toFixed(6)) : value;
+}
+
+function isoNow() {
+    return new Date().toISOString();
 }
 
 function rowKey(row) {
@@ -229,6 +235,33 @@ function scoreLinear(rows, model) {
     return scores;
 }
 
+function scoreArtifact(rows, artifact) {
+    const {decodedForest} = readModelArtifact(artifact);
+    const scores = new Map();
+    for (const row of rows) {
+        scores.set(rowKey(row), scorePackedForest(decodedForest, row.vector));
+    }
+    return scores;
+}
+
+function agreementReport(expectedScores, actualScores, rows, threshold = 0.5) {
+    let matches = 0;
+    let maxProbabilityDelta = 0;
+    for (const row of rows) {
+        const key = rowKey(row);
+        const expected = expectedScores.get(key);
+        const actual = actualScores.get(key);
+        if ((expected >= threshold) === (actual >= threshold)) matches++;
+        maxProbabilityDelta = Math.max(maxProbabilityDelta, Math.abs(expected - actual));
+    }
+    return {
+        threshold,
+        rows: rows.length,
+        signAgreement: compactNumber(matches / rows.length),
+        maxProbabilityDelta: compactNumber(maxProbabilityDelta)
+    };
+}
+
 function lightgbmScript() {
     return String.raw`
 import json
@@ -354,13 +387,32 @@ export function trainConsentBaselines(input) {
     const treeRows = [...train.rows, ...development.rows];
     const tree = trainLightGbm(train.rows, treeRows);
     const treeDevelopmentScores = new Map(development.rows.map(row => [rowKey(row), tree.scores.get(rowKey(row))]));
-    reports.push(baselineReport('lightgbm', dataset, development.rows,
-        treeDevelopmentScores, tree.trainMs, 0));
+    const treeReport = baselineReport('lightgbm', dataset, development.rows,
+        treeDevelopmentScores, tree.trainMs, 0);
+    reports.push(treeReport);
+    const modelArtifact = createModelArtifact({
+        lightGbmModel: tree.model,
+        featureNames: RULE_NAMES,
+        modelVersion: input.modelVersion ?? '0.0.0',
+        trainedAt: input.trainedAt ?? isoNow(),
+        corpus: input.corpus,
+        rulesHash: input.rulesHash ?? rulesHash(readFileSync(new URL('./rules.mjs', import.meta.url), 'utf8')),
+        calibration: {
+            method: 'development-threshold',
+            threshold: treeReport.threshold,
+            score: 'probability'
+        }
+    });
+    const artifactScores = scoreArtifact(treeRows, modelArtifact);
 
     return {
         schemaVersion: 1,
         task: 'consent-banners',
         featureNames: RULE_NAMES,
+        modelArtifact,
+        modelArtifactChecks: {
+            lightgbm: agreementReport(tree.scores, artifactScores, treeRows)
+        },
         baselines: reports.filter(report => BASELINE_NAMES.includes(report.name)),
         splits: {
             train: train.stats,

@@ -34,6 +34,10 @@ async function loadManifest(filename) {
         humanEffortHours: manifest.humanEffortHours,
         costs: manifest.costs,
         linear: manifest.linear,
+        corpus: manifest.corpus,
+        modelVersion: manifest.modelVersion,
+        rulesHash: manifest.rulesHash,
+        trainedAt: manifest.trainedAt,
         train: await loadSplit(manifest.train, baseDir),
         development: await loadSplit(manifest.development, baseDir)
     };

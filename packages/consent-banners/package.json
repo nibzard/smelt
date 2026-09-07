@@ -7,10 +7,13 @@
   "sideEffects": false,
   "exports": {
     "./rules": "./rules.mjs",
+    "./model": "./model.mjs",
     "./train": "./train.mjs"
   },
   "files": [
+    "model.mjs",
     "rules.mjs",
+    "schemas/model.schema.json",
     "train.mjs",
     "train-cli.mjs"
   ],

@@ -7,6 +7,7 @@ import {test} from 'node:test';
 import {parseHTML} from 'linkedom';
 
 import {captureFrozenSnapshot} from '@smelt-oss/capture';
+import {readModelArtifact, scorePackedForest} from '../model.mjs';
 import {trainConsentBaselines} from '../train.mjs';
 
 const viewport = {width: 1200, height: 900, deviceScaleFactor: 1};
@@ -134,6 +135,8 @@ test('trains and compares rules, linear, and LightGBM baselines', () => {
 
     const report = trainConsentBaselines({
         schemaVersion: 1,
+        trainedAt: '2026-09-07T23:58:00Z',
+        corpus: {id: 'synthetic-consent', revision: 'test-fixture'},
         humanEffortHours: 1.5,
         costs: {teacherUsd: 0.25, humanReviewUsd: 4, browserUsd: 0.1},
         train,
@@ -141,6 +144,15 @@ test('trains and compares rules, linear, and LightGBM baselines', () => {
     });
 
     assert.equal(report.schemaVersion, 1);
+    assert.equal(report.modelArtifact.task, 'consent-banners');
+    assert.equal(report.modelArtifact.trainedAt, '2026-09-07T23:58:00Z');
+    assert.equal(report.modelArtifact.corpus.id, 'synthetic-consent');
+    assert.equal(report.modelArtifactChecks.lightgbm.signAgreement, 1);
+    assert.equal(typeof report.modelArtifactChecks.lightgbm.maxProbabilityDelta, 'number');
+    const artifact = readModelArtifact(report.modelArtifact);
+    assert.equal(typeof scorePackedForest(artifact.decodedForest, Object.fromEntries(
+        report.featureNames.map(name => [name, 0])
+    )), 'number');
     assert.deepEqual(report.baselines.map(item => item.name), ['rules', 'linear', 'lightgbm']);
     for (const baseline of report.baselines) {
         assert.equal(baseline.accuracy.pages, 2);
