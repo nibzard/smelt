@@ -1,0 +1,1 @@
+T017 adds the consent browser benchmark harness. It measures the real in-page detect(document) path against frozen DOM captures in Playwright Chromium, with fresh pages per capture so initialization and first-call costs are visible.
