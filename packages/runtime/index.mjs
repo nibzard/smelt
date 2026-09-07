@@ -11,4 +11,5 @@ export {dom, element} from './lhs.mjs';
 export {out} from './rhs.mjs';
 export {type, typeIn, note, score, atMost} from './sides.mjs';
 export {CycleError, NoWindowError} from './errors.mjs';
+export {readModelArtifact, scoreCandidates, scorePackedForest, unpackForest} from './model.mjs';
 export * as utils from './utils.mjs';

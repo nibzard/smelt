@@ -29,6 +29,25 @@ one pass. It returns a `BoundRun`. Use `run.get(key)` to read a stored
 `{ms, elementsWalked, truncated, tier, rulesExecuted}`. `tier` is always
 `0`.
 
+## Tree scoring
+
+The runtime can read `model.smelt.json` artifacts from the trainer and score
+candidate feature vectors with no runtime dependencies:
+
+```js
+import {readModelArtifact, scoreCandidates} from '@smelt-oss/runtime';
+
+const model = readModelArtifact(modelJson);
+const result = scoreCandidates(model, candidates, candidate => candidate.vector);
+if (result.best) highlight(result.best.element);
+console.log(result.stats.ms);
+```
+
+`scoreCandidates()` applies the artifact calibration threshold. When candidates
+tie, it prefers the smaller root, then the earlier element in document order.
+It returns `{best, scored, threshold, stats}`. `stats.ms` measures tree scoring
+cost only.
+
 ## Charter
 
 - Engine core under 10,240 bytes gzipped (`npm run size`).

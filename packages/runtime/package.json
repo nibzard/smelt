@@ -18,6 +18,7 @@
     "./rhs": "./rhs.mjs",
     "./rule": "./rule.mjs",
     "./plan": "./plan.mjs",
+    "./model": "./model.mjs",
     "./executor": "./executor.mjs"
   },
   "files": [
