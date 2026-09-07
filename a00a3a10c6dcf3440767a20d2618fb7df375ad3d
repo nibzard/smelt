@@ -1,0 +1,1 @@
+T009 adds the canonical consent label schema and validation path for the pilot evaluator. Reviewed labels normalize into the compact scoring input. Unresolved labels produce review queue items and do not enter scoring.
