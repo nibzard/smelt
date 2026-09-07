@@ -1,0 +1,1 @@
+T013 implemented the fixed consent baseline trainer. It reuses frozen snapshot replay, fits rules, logistic linear, and LightGBM baselines, and emits comparison metrics for development data.
