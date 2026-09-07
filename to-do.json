@@ -700,8 +700,8 @@
       "id": "T023",
       "title": "Prepare the 2026-10-16 pilot evidence review",
       "priority": 1,
-      "status": "todo",
-      "details": "Summarize evidence for continuing, changing the task, or stopping the integration at the six-week review date.",
+      "status": "done",
+      "details": "Prepared proposed decision record 0005 for the 2026-10-16 pilot evidence review. The record lists required evidence, current repository evidence, predeclared limits, decision rules, consequences, and missing pilot reports.",
       "steps": [
         "Collect baseline, model, agent-loop, and workflow comparison results.",
         "Compare results against predeclared limits.",
@@ -715,14 +715,17 @@
       "files": [
         "IDEA.md",
         "decisions/0003-steel-pilot-and-evaluation.md",
-        "decisions/README.md"
+        "decisions/0005-pilot-evidence-review.md",
+        "decisions/README.md",
+        "to-do.json"
       ],
       "depends_on": [
         "T022",
         "T020"
       ],
       "created_at": "2026-09-07T21:13:21Z",
-      "updated_at": "2026-09-07T21:13:21Z"
+      "updated_at": "2026-09-07T23:28:48Z",
+      "blockers": []
     },
     {
       "id": "T024",

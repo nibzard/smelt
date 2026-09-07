@@ -11,4 +11,5 @@ Rules:
 3. Numbering is sequential. Record 0001 is the original kill-criteria clock;
    0002 is the naming decision. Record 0003 defines the Steel pilot and
    supersedes the dates and continuation rules in 0001. Record 0004 confirms
-   consent-banner root detection as the first Steel detector task.
+   consent-banner root detection as the first Steel detector task. Record 0005
+   prepares the 2026-10-16 pilot evidence review.
