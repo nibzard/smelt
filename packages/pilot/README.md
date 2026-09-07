@@ -9,6 +9,7 @@ Run from the repository root:
 ```sh
 npm run pilot:demo
 node packages/pilot/cli.mjs path/to/labels.json path/to/predictions.json
+node packages/pilot/cli.mjs --workflows path/to/baseline.json path/to/smelt.json
 ```
 
 The demo uses synthetic labels and predictions, with deliberate errors. It
@@ -91,6 +92,29 @@ with `evaluateGroupedSplits()`. It does not verify human labels, element
 existence, browser latency, or workflow costs. Capture validation must precede
 release evaluation. Keep unseen test labels outside agent-loop inputs. CI uses
 synthetic examples only.
+
+## Workflow comparison input
+
+Use `compareWorkflows()` or `--workflows` to compare matched Steel run records.
+Both files are arrays of `schemaVersion: 1` records. Baseline records use
+`variant: "baseline"`. Smelt records use `variant: "smelt-assisted"`.
+Each `caseId` must appear once in each file. The fixed agent model, prompt hash,
+and action-policy hash must match for the same case.
+
+Each record contains workflow metrics:
+
+- `taskCompleted`: whether the workflow completed.
+- `modelCalls`: model calls used by the workflow.
+- `totalWorkflowCostUsd`: full run cost, including failed runs.
+- `browserMs`: browser runtime, optional.
+- `workflowMs`: end-to-end workflow time, optional.
+- `addedLatencyMs`: Smelt detection and handoff latency, required for the
+  latency gate.
+- `detectionMs`: detector runtime, optional.
+
+The report publishes matched case count, sample counts, completion rate, total
+cost, cost per completed task, model calls, p95 latency, 90 percent paired
+bootstrap intervals, gate results, and failure slices.
 
 The canonical consent-label schema lives in
 `tasks/consent-banners/labels.schema.json`. It records `has_banner`,

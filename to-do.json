@@ -669,7 +669,7 @@
       "id": "T022",
       "title": "Compare matched Steel workflows with and without Smelt",
       "priority": 1,
-      "status": "todo",
+      "status": "done",
       "details": "Evaluate matched task cases with isolated browser state and decide whether Smelt improves completion or cost without a material regression.",
       "steps": [
         "Build the matched case set.",
@@ -683,14 +683,18 @@
         "steel"
       ],
       "files": [
-        "IDEA.md",
-        "decisions/0003-steel-pilot-and-evaluation.md"
+        "packages/pilot/README.md",
+        "packages/pilot/cli.mjs",
+        "packages/pilot/index.mjs",
+        "packages/pilot/test/evaluate.test.mjs",
+        "to-do.json"
       ],
       "depends_on": [
         "T021"
       ],
       "created_at": "2026-09-07T21:13:21Z",
-      "updated_at": "2026-09-07T21:13:21Z"
+      "updated_at": "2026-09-07T23:22:58Z",
+      "blockers": []
     },
     {
       "id": "T023",

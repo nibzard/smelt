@@ -6,12 +6,38 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
-import {evaluate, evaluateGroupedSplits, reviewQueueFromLabels} from '../index.mjs';
+import {compareWorkflows, evaluate, evaluateGroupedSplits, reviewQueueFromLabels} from '../index.mjs';
 
 const page = (id, hasBanner = true) => ({
     id, group: id, hasBanner, acceptableRoots: hasBanner ? ['banner', 'wrapper'] : []
 });
 const dataset = (...pages) => ({schemaVersion: 1, split: 'development', pages});
+const agent = {
+    model: 'steel-agent-model',
+    promptHash: 'sha256-prompt',
+    actionPolicyHash: 'sha256-policy'
+};
+
+function workflowRecord(caseId, variant, overrides = {}) {
+    return {
+        schemaVersion: 1,
+        task: 'consent-banners',
+        caseId,
+        variant,
+        fixedAgent: overrides.fixedAgent ?? agent,
+        metrics: {
+            taskCompleted: true,
+            modelCalls: 4,
+            totalWorkflowCostUsd: 0.04,
+            browserMs: 1000,
+            workflowMs: 1200,
+            ...overrides.metrics
+        },
+        workflow: {
+            metadata: overrides.metadata ?? {}
+        }
+    };
+}
 
 test('a wrong root is both a false positive and a false negative', () => {
     const report = evaluate(dataset(page('a')), [{id: 'a', roots: ['body']}]);
@@ -110,6 +136,72 @@ test('scores grouped splits and rejects groups crossing splits', () => {
         train: [{id: 'a', roots: []}, {id: 'b', roots: []}]
     }), /Duplicate split/);
     assert.throws(() => evaluateGroupedSplits([development], {}), /Missing predictions/);
+});
+
+test('compares matched Steel workflows and applies cost gates', () => {
+    const baseline = [
+        workflowRecord('case-a', 'baseline', {metrics: {totalWorkflowCostUsd: 0.1, workflowMs: 2000}}),
+        workflowRecord('case-b', 'baseline', {metrics: {totalWorkflowCostUsd: 0.1, workflowMs: 1800}}),
+        workflowRecord('case-c', 'baseline', {
+            metrics: {taskCompleted: false, totalWorkflowCostUsd: 0.1, workflowMs: 1900},
+            metadata: {failureSlice: 'missed-consent-banner'}
+        })
+    ];
+    const smelt = [
+        workflowRecord('case-a', 'smelt-assisted', {
+            metrics: {totalWorkflowCostUsd: 0.05, modelCalls: 2, addedLatencyMs: 40, detectionMs: 4, workflowMs: 1700}
+        }),
+        workflowRecord('case-b', 'smelt-assisted', {
+            metrics: {totalWorkflowCostUsd: 0.05, modelCalls: 2, addedLatencyMs: 35, detectionMs: 3, workflowMs: 1600}
+        }),
+        workflowRecord('case-c', 'smelt-assisted', {
+            metrics: {taskCompleted: true, totalWorkflowCostUsd: 0.05, modelCalls: 2,
+                addedLatencyMs: 30, detectionMs: 3, workflowMs: 1650}
+        })
+    ];
+
+    const report = compareWorkflows({baseline, smelt}, {bootstrapIterations: 200, seed: 7});
+    assert.equal(report.matchedCases, 3);
+    assert.equal(report.baseline.successfulCompletions, 2);
+    assert.equal(report.smelt.successfulCompletions, 3);
+    assert.equal(report.deltas.costPerCompletedTaskRatio, -0.666667);
+    assert.equal(report.gates.primary.status, 'pass');
+    assert.equal(report.gates.completionRegression.status, 'pass');
+    assert.equal(report.gates.latencyRegression.status, 'pass');
+    assert.deepEqual(report.failureSlices.baseline, {'missed-consent-banner': 1});
+    assert.deepEqual(report.failureSlices.smelt, {});
+});
+
+test('uses completion as the primary gate for low baseline completion', () => {
+    const baseline = [
+        workflowRecord('case-a', 'baseline', {metrics: {taskCompleted: false, totalWorkflowCostUsd: 0.04}}),
+        workflowRecord('case-b', 'baseline', {metrics: {taskCompleted: false, totalWorkflowCostUsd: 0.04}}),
+        workflowRecord('case-c', 'baseline', {metrics: {taskCompleted: true, totalWorkflowCostUsd: 0.04}})
+    ];
+    const smelt = [
+        workflowRecord('case-a', 'smelt-assisted', {metrics: {taskCompleted: true, totalWorkflowCostUsd: 0.04, addedLatencyMs: 20, workflowMs: 1000}}),
+        workflowRecord('case-b', 'smelt-assisted', {metrics: {taskCompleted: false, totalWorkflowCostUsd: 0.04, addedLatencyMs: 20, workflowMs: 1000}}),
+        workflowRecord('case-c', 'smelt-assisted', {metrics: {taskCompleted: true, totalWorkflowCostUsd: 0.04, addedLatencyMs: 20, workflowMs: 1000}})
+    ];
+
+    const report = compareWorkflows({baseline, smelt}, {bootstrapIterations: 100, seed: 3});
+    assert.equal(report.gates.primary.metric, 'completion_rate');
+    assert.equal(report.gates.primary.status, 'pass');
+    assert.equal(report.deltas.completionRate, 0.333333);
+});
+
+test('rejects workflow comparisons that are not matched', () => {
+    assert.throws(() => compareWorkflows({
+        baseline: [workflowRecord('case-a', 'baseline')],
+        smelt: [workflowRecord('case-b', 'smelt-assisted')]
+    }), /Missing Smelt record/);
+
+    assert.throws(() => compareWorkflows({
+        baseline: [workflowRecord('case-a', 'baseline')],
+        smelt: [workflowRecord('case-a', 'smelt-assisted', {
+            fixedAgent: {...agent, promptHash: 'different'}
+        })]
+    }), /Fixed agent differs/);
 });
 
 test('accepts reviewed consent labels and skips unresolved pages', () => {

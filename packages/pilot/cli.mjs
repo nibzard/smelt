@@ -3,19 +3,22 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import {readFile} from 'node:fs/promises';
-import {evaluate, evaluateGroupedSplits} from './index.mjs';
+import {compareWorkflows, evaluate, evaluateGroupedSplits} from './index.mjs';
 
 const args = process.argv.slice(2);
-if (args.length !== 2) {
-    console.error('Usage: node packages/pilot/cli.mjs <labels.json> <predictions.json>');
+if (args.length !== 2 && args.length !== 3) {
+    console.error('Usage: node packages/pilot/cli.mjs [--workflows] <labels-or-baseline.json> <predictions-or-smelt.json>');
     process.exitCode = 1;
 } else {
     try {
-        const [labels, predictions] = await Promise.all(args.map(async filename =>
+        const workflowMode = args[0] === '--workflows';
+        const filenames = workflowMode ? args.slice(1) : args;
+        const [left, right] = await Promise.all(filenames.map(async filename =>
             JSON.parse(await readFile(filename, 'utf8'))));
-        const report = labels?.splits || Array.isArray(labels) ?
-            evaluateGroupedSplits(labels, predictions) :
-            evaluate(labels, predictions);
+        const report = workflowMode ? compareWorkflows({baseline: left, smelt: right}) :
+            left?.splits || Array.isArray(left) ?
+                evaluateGroupedSplits(left, right) :
+                evaluate(left, right);
         console.log(JSON.stringify(report, null, 2));
     } catch (error) {
         console.error(`Evaluation failed: ${error.message}`);
