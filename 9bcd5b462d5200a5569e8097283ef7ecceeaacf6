@@ -1,0 +1,1 @@
+T022 adds a deterministic pilot comparison for matched Steel workflow records. The report keeps the predeclared metric contract executable: cost per completed task, completion regression, latency gates, paired bootstrap intervals, and failure slices.
