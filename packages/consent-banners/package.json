@@ -8,6 +8,7 @@
   "exports": {
     ".": "./index.mjs",
     "./bench": "./bench.mjs",
+    "./steel-workflow": "./steel-workflow.mjs",
     "./rules": "./rules.mjs",
     "./model": "./model.mjs",
     "./model.smelt.json": "./model.smelt.json",
@@ -23,6 +24,7 @@
     "model.mjs",
     "bench.mjs",
     "bench-cli.mjs",
+    "steel-workflow.mjs",
     "rules.mjs",
     "schemas/model.schema.json",
     "train.mjs",

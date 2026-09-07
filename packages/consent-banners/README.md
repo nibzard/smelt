@@ -38,3 +38,32 @@ Manifest format:
   }
 }
 ```
+
+## Steel workflow hook
+
+Use `runControlledSteelWorkflow()` to run detection inside an existing Steel
+browser page before the caller asks its agent model to interpret the page:
+
+```js
+import {runControlledSteelWorkflow} from '@smelt-oss/consent-banners/steel-workflow'
+
+const record = await runControlledSteelWorkflow({
+  page,
+  caseId: 'checkout-cookie-wall',
+  fixedAgent: {
+    model: 'agent-model-id',
+    promptHash: 'sha256-prompt',
+    actionPolicyHash: 'sha256-policy'
+  },
+  workflow: async ({page, detection, fixedAgent}) => runExistingAgent({
+    page,
+    detection,
+    fixedAgent
+  })
+})
+```
+
+The helper does not click controls or change the caller's prompts or action
+policy. It returns the selected element reference and records task completion,
+model calls, total workflow cost, cost per completed task, and added detection
+latency for the Steel pilot.
