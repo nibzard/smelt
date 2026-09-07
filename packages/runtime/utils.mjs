@@ -178,6 +178,21 @@ export function getDefault(map, key, defaultMaker) {
     return defaultMaker();
 }
 
+/** Return elements matching a selector across the composed tree. */
+export function querySelectorAllComposed(root, selector) {
+    const nativeMatches = Array.from(root.querySelectorAll(selector));
+    if (!hasComposedExtraRoot(root)) {
+        return nativeMatches;
+    }
+    const matches = [];
+    for (const element of composedElements(root, false)) {
+        if (element.matches(selector)) {
+            matches.push(element);
+        }
+    }
+    return matches;
+}
+
 /**
  * Return an Array, the reverse topological sort of the given nodes.
  *
@@ -536,4 +551,61 @@ export function windowForElement(element) {
         throw new NoWindowError();
     }
     return win;
+}
+
+function hasComposedExtraRoot(root) {
+    if (hasOwnComposedExtraRoot(root)) return true;
+    for (const element of root.querySelectorAll('*')) {
+        if (hasOwnComposedExtraRoot(element)) return true;
+    }
+    return false;
+}
+
+function hasOwnComposedExtraRoot(element) {
+    return (element.nodeType === element.ELEMENT_NODE &&
+            element.shadowRoot !== null &&
+            element.shadowRoot !== undefined) ||
+           sameOriginFrameDocument(element) !== undefined;
+}
+function *composedElements(root, includeRoot) {
+    if (includeRoot && root.nodeType === root.ELEMENT_NODE) {
+        yield root;
+    }
+    for (const node of root.childNodes) {
+        if (node !== null && node.nodeType === node.ELEMENT_NODE) {
+            yield *composedElementAndDescendants(node);
+        }
+    }
+}
+function *composedElementAndDescendants(element) {
+    yield element;
+    const frameDocument = sameOriginFrameDocument(element);
+    if (frameDocument !== undefined) {
+        yield *composedElements(frameDocument, false);
+        return;
+    }
+    if (element.shadowRoot !== null && element.shadowRoot !== undefined) {
+        yield *composedElements(element.shadowRoot, false);
+        return;
+    }
+    for (const child of element.childNodes) {
+        if (child.nodeType === child.ELEMENT_NODE) {
+            yield *composedElementAndDescendants(child);
+        }
+    }
+}
+function sameOriginFrameDocument(element) {
+    try {
+        const doc = element.contentDocument;
+        if (doc !== null && doc !== undefined) return doc;
+    } catch (error) {
+        return undefined;
+    }
+    try {
+        const win = element.contentWindow;
+        if (win !== null && win !== undefined && win.document !== null) return win.document;
+    } catch (error) {
+        return undefined;
+    }
+    return undefined;
 }

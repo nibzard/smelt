@@ -104,7 +104,7 @@
       "id": "T004",
       "title": "Add composed-tree candidate walking",
       "priority": 1,
-      "status": "todo",
+      "status": "done",
       "details": "Support open shadow roots and same-origin frames for candidate discovery while preserving the element budget and stats shape.",
       "steps": [
         "Add a composed-tree walk path for open shadow roots.",
@@ -118,13 +118,15 @@
       "files": [
         "packages/runtime/lhs.mjs",
         "packages/runtime/utils.mjs",
-        "packages/runtime/test/lhs.test.mjs"
+        "packages/runtime/test/lhs.test.mjs",
+        "to-do.json"
       ],
       "depends_on": [
         "T003"
       ],
       "created_at": "2026-09-07T21:13:21Z",
-      "updated_at": "2026-09-07T21:13:21Z"
+      "updated_at": "2026-09-07T21:37:54Z",
+      "blockers": []
     },
     {
       "id": "T005",

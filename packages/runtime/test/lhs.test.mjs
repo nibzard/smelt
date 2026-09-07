@@ -97,4 +97,67 @@ describe('LHS', function () {
         assert.equal(all.length, 3);
         assert.deepEqual(all.map(fnode => fnode.element.id), ['a', 'b', 'c']);
     });
+
+    test('walks open shadow roots for dom() candidates', function () {
+        const doc = staticDom('<div id="host"></div><button id="light"></button>');
+        const host = doc.getElementById('host');
+        const shadow = host.attachShadow({mode: 'open'});
+        shadow.innerHTML = '<button id="shadow"></button>';
+
+        const facts = ruleset([
+            rule(dom('button'), type('button')),
+            rule(type('button'), 'buttons')
+        ]).against(doc);
+
+        assert.deepEqual(facts.get('buttons').map(fnode => fnode.element.id),
+                         ['shadow', 'light']);
+    });
+
+    test('skips closed shadow roots for dom() candidates', function () {
+        const doc = staticDom('<div id="host"></div><button id="light"></button>');
+        const host = doc.getElementById('host');
+        const shadow = host.attachShadow({mode: 'closed'});
+        shadow.innerHTML = '<button id="closed"></button>';
+
+        const facts = ruleset([
+            rule(dom('button'), type('button')),
+            rule(type('button'), 'buttons')
+        ]).against(doc);
+
+        assert.deepEqual(facts.get('buttons').map(fnode => fnode.element.id), ['light']);
+    });
+
+    test('walks same-origin frame documents for dom() candidates', function () {
+        const doc = staticDom('<iframe id="frame"></iframe><button id="outer"></button>');
+        const frameDoc = staticDom('<button id="inner"></button>');
+        Object.defineProperty(doc.getElementById('frame'), 'contentDocument', {
+            configurable: true,
+            value: frameDoc
+        });
+
+        const facts = ruleset([
+            rule(dom('button'), type('button')),
+            rule(type('button'), 'buttons')
+        ]).against(doc);
+
+        assert.deepEqual(facts.get('buttons').map(fnode => fnode.element.id),
+                         ['inner', 'outer']);
+    });
+
+    test('applies the element budget to composed candidates', function () {
+        const doc = staticDom('<div id="host"></div><button id="light"></button>');
+        const shadow = doc.getElementById('host').attachShadow({mode: 'open'});
+        shadow.innerHTML = '<button id="shadow"></button>';
+
+        const facts = ruleset([
+            rule(dom('button'), type('button')),
+            rule(type('button'), 'buttons')
+        ]).against(doc, {maxElements: 1});
+
+        assert.deepEqual(facts.get('buttons').map(fnode => fnode.element.id), ['shadow']);
+        assert.equal(facts.stats.elementsWalked, 1);
+        assert.equal(facts.stats.truncated, true);
+        assert.equal(Object.keys(facts.stats).join(','),
+                     'ms,elementsWalked,truncated,tier,rulesExecuted');
+    });
 });

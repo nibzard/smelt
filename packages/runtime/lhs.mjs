@@ -6,7 +6,7 @@
 
 // The left-hand side of a rule
 
-import {getDefault, maxes, setDefault, NiceSet} from './utils.mjs';
+import {getDefault, maxes, querySelectorAllComposed, setDefault, NiceSet} from './utils.mjs';
 
 
 /**
@@ -34,15 +34,7 @@ export function element(selector) {
     return new ElementLhs(selector);
 }
 
-/**
- * Rules and the LHSs and RHSs that comprise them have no mutable state. A
- * run therefore borrows a ruleset's rules without duplicating them and
- * shares one cache among every rule that cares about a given type.
- *
- * Lhses are responsible for maintaining the run's maxCache.
- *
- * Lhs and its subclasses are private to the framework.
- */
+/** Base class for private left-hand-side expressions. */
 export class Lhs {
     constructor() {
         this._predicate = () => true;
@@ -58,80 +50,34 @@ export class Lhs {
         }
     }
 
-    /**
-     * Prune nodes from consideration early, before scoring is done.
-     *
-     * Reserve this for where you are sure it is always correct or when
-     * performance demands it. It is generally preferable to use :func:`score`
-     * and let the coefficients determine the significance of each rule.
-     * Human intuition is often wrong, especially across languages.
-     *
-     * Example: ``dom('p').when(isVisible)``
-     *
-     * @arg {function} predicate Accepts a fnode and returns a boolean
-     */
+    /** Prune fnodes before scoring. */
     when(predicate) {
         let lhs = this.clone();
         lhs._predicate = predicate;
         return lhs;
     }
 
-    /**
-     * Of all the dom nodes selected by type() or dom(), return only
-     * the fnodes that satisfy all the predicates imposed by calls to
-     * when()
-     */
+    /** Return only fnodes that satisfy the when() predicate. */
     fnodesSatisfyingWhen(fnodes) {
         return Array.from(fnodes).filter(this._predicate);
     }
 
-    /**
-     * Return an iterable of output fnodes selected by this left-hand-side
-     * expression.
-     *
-     * Pre: The rules I depend on have already been run, and their results are
-     * in the run's typeCache.
-     *
-     * @arg ruleset {BoundRun} The run the LHS is being evaluated within
-     */
+    /** Return selected fnodes after prerequisites have run. */
     // fnodes (ruleset) {}
 
-    /**
-     * Check that a RHS-emitted fact is legal for this kind of LHS, and throw
-     * an error if it isn't.
-     */
+    /** Check that a RHS-emitted fact is legal for this LHS. */
     checkFact(fact) {}
 
-    /**
-     * Return the single type the output of the LHS is guaranteed to have.
-     * Return undefined if there is no such single type we can ascertain.
-     */
+    /** Return the guaranteed output type, if known. */
     guaranteedType() {}
 
-    /**
-     * Return the type I aggregate if I am an aggregate LHS; return undefined
-     * otherwise.
-     */
+    /** Return the aggregated type, if any. */
     aggregatedType() {}
 
-    /**
-     * Return each combination of types my selected nodes could be locally (that
-     * is, by this rule only) constrained to have.
-     *
-     * For example, type(A) would return [A].
-     *
-     * @return {NiceSet[]}
-     */
+    /** Return local type combinations as NiceSet values. */
     // possibleTypeCombinations() {}
 
-    /**
-     * Types mentioned in this LHS.
-     *
-     * In other words, the types I need to know the assignment status of before
-     * I can make my selections
-     *
-     * @return NiceSet of strings
-     */
+    /** Return the types this LHS needs before it can select nodes. */
     // typesMentioned() {}
 }
 
@@ -144,9 +90,7 @@ class DomLhs extends Lhs {
         this.selector = selector;
     }
 
-    /**
-     * Return the name of this kind of LHS, for use in error messages.
-     */
+    /** Return the LHS name for error messages. */
     _callName() {
         return 'dom';
     }
@@ -158,16 +102,10 @@ class DomLhs extends Lhs {
     fnodes(ruleset) {
         return this._domNodesToFilteredFnodes(
             ruleset,
-            ruleset.doc.querySelectorAll(this.selector));
+            querySelectorAllComposed(ruleset.doc, this.selector));
     }
 
-    /**
-     * Turn a NodeList of DOM nodes into an array of fnodes, and filter out
-     * those that don't match the :func:`when()` clause.
-     *
-     * DOM nodes beyond the run's element budget are skipped, and the run
-     * records the truncation.
-     */
+    /** Turn DOM nodes into budgeted, filtered fnodes. */
     _domNodesToFilteredFnodes(ruleset, domNodes) {
         let ret = [];
         for (let i = 0; i < domNodes.length; i++) {
@@ -179,14 +117,7 @@ class DomLhs extends Lhs {
         return this.fnodesSatisfyingWhen(ret);
     }
 
-    /**
-     * Return the fnode for a DOM node or, if the run's element budget is
-     * exhausted, ``undefined`` after telling the run about the truncation.
-     * The run counts each element that obtains its first fnode; elements
-     * that already have fnodes pass free, since they add nothing to the
-     * budget. Explicit ``get(domElement)`` calls bypass this and always
-     * produce a fnode.
-     */
+    /** Return a fnode if the run still has element budget. */
     _fnodeWithinElementBudget(ruleset, element) {
         if (!ruleset.hasFnodeFor(element) && ruleset.atElementBudget()) {
             ruleset.noteTruncation();
@@ -286,15 +217,9 @@ class AggregateTypeLhs extends TypeLhs {
     }
 }
 
-/**
- * Internal representation of a LHS that has both type and max([NUMBER])
- * constraints. max(NUMBER != 1) support is not yet implemented.
- */
+/** Internal LHS with both type and max() constraints. */
 class TypeMaxLhs extends AggregateTypeLhs {
-    /**
-     * Return the max-scoring node (or nodes if there is a tie) of the given
-     * type.
-     */
+    /** Return the max-scoring node, or nodes if there is a tie. */
     fnodes(ruleset) {
         const self = this;
         // super cannot appear directly in a generator function body.
