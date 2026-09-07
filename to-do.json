@@ -519,7 +519,7 @@
       "id": "T017",
       "title": "Build the browser benchmark harness",
       "priority": 1,
-      "status": "todo",
+      "status": "done",
       "details": "Replay frozen DOMs in Playwright, run detect(document) in-page, and report p50, p95, initialization, first-call, and repeated-call latency.",
       "steps": [
         "Create the bench command.",
@@ -533,14 +533,19 @@
         "release"
       ],
       "files": [
-        "IDEA.md",
-        "README.md"
+        "packages/consent-banners/README.md",
+        "packages/consent-banners/bench-cli.mjs",
+        "packages/consent-banners/bench.mjs",
+        "packages/consent-banners/package.json",
+        "packages/consent-banners/test/bench.test.mjs",
+        "to-do.json"
       ],
       "depends_on": [
         "T016"
       ],
       "created_at": "2026-09-07T21:13:21Z",
-      "updated_at": "2026-09-07T21:13:21Z"
+      "updated_at": "2026-09-07T23:06:45Z",
+      "blockers": []
     },
     {
       "id": "T018",

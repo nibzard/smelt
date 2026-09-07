@@ -7,21 +7,29 @@
   "sideEffects": false,
   "exports": {
     ".": "./index.mjs",
+    "./bench": "./bench.mjs",
     "./rules": "./rules.mjs",
     "./model": "./model.mjs",
     "./model.smelt.json": "./model.smelt.json",
     "./train": "./train.mjs"
   },
+  "bin": {
+    "smelt-consent-bench": "./bench-cli.mjs"
+  },
   "files": [
+    "README.md",
     "index.mjs",
     "model.smelt.json",
     "model.mjs",
+    "bench.mjs",
+    "bench-cli.mjs",
     "rules.mjs",
     "schemas/model.schema.json",
     "train.mjs",
     "train-cli.mjs"
   ],
   "scripts": {
+    "bench": "node bench-cli.mjs",
     "test": "node --test",
     "train": "node train-cli.mjs"
   },
