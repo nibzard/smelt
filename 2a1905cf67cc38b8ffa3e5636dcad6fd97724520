@@ -1,0 +1,1 @@
+T011 extends the pilot evaluator so grouped train, development, and test inputs can be scored together while rejecting any domain/template group that crosses split boundaries. It also reports exact-root accuracy and keeps the existing one-split evaluator path compatible.
