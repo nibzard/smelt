@@ -1,0 +1,1092 @@
+{
+  "schema_version": 1,
+  "project": {
+    "name": "Smelt",
+    "root": "."
+  },
+  "source_files": [
+    "ADOPTERS.md",
+    "CONTRIBUTING.md",
+    "IDEA.md",
+    "README.md",
+    "decisions/0001-kill-criteria-clock.md",
+    "decisions/0002-naming-and-handles.md",
+    "decisions/0003-steel-pilot-and-evaluation.md",
+    "decisions/README.md",
+    "packages/pilot/README.md",
+    "packages/runtime/CONTRACTS.md",
+    "packages/runtime/README.md",
+    "tasks/consent-banners/program.md"
+  ],
+  "tasks": [
+    {
+      "id": "T001",
+      "title": "Rank Steel workflow failures and confirm the first task",
+      "priority": 1,
+      "status": "done",
+      "details": "Confirmed consent-banner root detection as the first Steel pilot task after ranking consent banners, other overlays, form fields, and primary action buttons by planning frequency, workflow cost, and small-detector fit. No authorized Steel session export is present in the repository, so decision 0004 uses permitted planning metadata only.",
+      "steps": [
+        "Collect recent workflow failure cases with permitted metadata only.",
+        "Score candidate tasks by failure frequency, cost, and detector fit.",
+        "Record the selected task and rationale in a decision record or task spec update."
+      ],
+      "tags": [
+        "pilot",
+        "steel",
+        "planning"
+      ],
+      "files": [
+        "decisions/0004-first-steel-detector-task.md",
+        "decisions/README.md",
+        "tasks/consent-banners/program.md"
+      ],
+      "created_at": "2026-09-07T21:13:21Z",
+      "updated_at": "2026-09-07T21:18:32Z",
+      "blockers": []
+    },
+    {
+      "id": "T002",
+      "title": "Predeclare Steel workflow evaluation metrics",
+      "priority": 1,
+      "status": "todo",
+      "details": "Define the primary workflow metric, minimum useful improvement, and acceptable regression limits before running the Steel comparison.",
+      "steps": [
+        "Measure the current workflow baseline.",
+        "Select the primary metric and secondary metrics.",
+        "Write the improvement and regression limits into the task specification."
+      ],
+      "tags": [
+        "pilot",
+        "metrics"
+      ],
+      "files": [
+        "tasks/consent-banners/program.md",
+        "packages/pilot/README.md"
+      ],
+      "depends_on": [
+        "T001"
+      ],
+      "created_at": "2026-09-07T21:13:21Z",
+      "updated_at": "2026-09-07T21:13:21Z"
+    },
+    {
+      "id": "T003",
+      "title": "Finish the runtime port against the contract",
+      "priority": 1,
+      "status": "todo",
+      "details": "Complete the Fathom subset in @smelt-oss/runtime with the exact public API, dropped features, eager plan execution, element budget, and typed errors.",
+      "steps": [
+        "Audit all runtime modules against CONTRACTS.md.",
+        "Close missing behavior in plan and executor.",
+        "Expand ported tests for prerequisite errors, outputs, max selection, and element budgets.",
+        "Run npm run verify."
+      ],
+      "tags": [
+        "runtime",
+        "tests"
+      ],
+      "files": [
+        "packages/runtime/CONTRACTS.md",
+        "packages/runtime/index.mjs",
+        "packages/runtime/plan.mjs",
+        "packages/runtime/executor.mjs"
+      ],
+      "created_at": "2026-09-07T21:13:21Z",
+      "updated_at": "2026-09-07T21:13:21Z"
+    },
+    {
+      "id": "T004",
+      "title": "Add composed-tree candidate walking",
+      "priority": 1,
+      "status": "todo",
+      "details": "Support open shadow roots and same-origin frames for candidate discovery while preserving the element budget and stats shape.",
+      "steps": [
+        "Add a composed-tree walk path for open shadow roots.",
+        "Keep the native selector path for pages without shadow roots.",
+        "Add tests for shadow roots, closed roots, and same-origin frames."
+      ],
+      "tags": [
+        "runtime",
+        "dom"
+      ],
+      "files": [
+        "packages/runtime/lhs.mjs",
+        "packages/runtime/utils.mjs",
+        "packages/runtime/test/lhs.test.mjs"
+      ],
+      "depends_on": [
+        "T003"
+      ],
+      "created_at": "2026-09-07T21:13:21Z",
+      "updated_at": "2026-09-07T21:13:21Z"
+    },
+    {
+      "id": "T005",
+      "title": "Implement the frozen snapshot schema",
+      "priority": 1,
+      "status": "todo",
+      "details": "Define and implement capture output for stripped DOM snapshots, element IDs, layout values, intrinsic features, and capture metadata.",
+      "steps": [
+        "Define the JSON schema for snapshots and feature files.",
+        "Assign stable pre-order element IDs.",
+        "Record rects, z-index, position flags, display, visibility, and opacity.",
+        "Add fixtures for positive, negative, delayed, and frame cases."
+      ],
+      "tags": [
+        "capture",
+        "corpus",
+        "layout"
+      ],
+      "files": [
+        "IDEA.md",
+        "tasks/consent-banners/program.md"
+      ],
+      "depends_on": [
+        "T001"
+      ],
+      "created_at": "2026-09-07T21:13:21Z",
+      "updated_at": "2026-09-07T21:13:21Z"
+    },
+    {
+      "id": "T006",
+      "title": "Build the Steel capture adapter",
+      "priority": 1,
+      "status": "todo",
+      "details": "Use dedicated Steel browsers to collect public pages with controlled browser state, location, viewport, timing, and metadata.",
+      "steps": [
+        "Create the adapter entry point and configuration format.",
+        "Capture public pages with headed Chromium or Firefox.",
+        "Inject the single-file engine through Playwright.",
+        "Write snapshots, features, and metadata to corpus paths."
+      ],
+      "tags": [
+        "steel",
+        "capture",
+        "corpus"
+      ],
+      "files": [
+        "IDEA.md",
+        "CONTRIBUTING.md"
+      ],
+      "depends_on": [
+        "T005"
+      ],
+      "created_at": "2026-09-07T21:13:21Z",
+      "updated_at": "2026-09-07T21:13:21Z"
+    },
+    {
+      "id": "T007",
+      "title": "Add the local Playwright capture path",
+      "priority": 2,
+      "status": "todo",
+      "details": "Provide a local reproduction path that writes the same snapshot, feature, and metadata format as the Steel adapter.",
+      "steps": [
+        "Create a local crawler command.",
+        "Use the same capture schema as Steel.",
+        "Add a fixture crawl that runs without credentials."
+      ],
+      "tags": [
+        "capture",
+        "playwright"
+      ],
+      "files": [
+        "README.md",
+        "CONTRIBUTING.md"
+      ],
+      "depends_on": [
+        "T005"
+      ],
+      "created_at": "2026-09-07T21:13:21Z",
+      "updated_at": "2026-09-07T21:13:21Z"
+    },
+    {
+      "id": "T008",
+      "title": "Implement the layout shim and parity fixture",
+      "priority": 1,
+      "status": "todo",
+      "details": "Make Node replay over frozen snapshots return the same feature vectors as browser execution for geometry-dependent rules.",
+      "steps": [
+        "Inject frozen layout values into the DOM API used by rules.",
+        "Build a browser-versus-Node parity runner.",
+        "Add CI fixtures that compare feature vectors exactly."
+      ],
+      "tags": [
+        "layout",
+        "training",
+        "ci"
+      ],
+      "files": [
+        "IDEA.md",
+        "packages/runtime/README.md"
+      ],
+      "depends_on": [
+        "T005",
+        "T003"
+      ],
+      "created_at": "2026-09-07T21:13:21Z",
+      "updated_at": "2026-09-07T21:13:21Z"
+    },
+    {
+      "id": "T009",
+      "title": "Create the consent label schema and review queue",
+      "priority": 1,
+      "status": "todo",
+      "details": "Implement labels for has_banner, acceptable_roots, banner_root, banner_kind, jurisdiction, frame, evidence, confidence, and unresolved review states.",
+      "steps": [
+        "Write the label schema and validation code.",
+        "Add human review queue files for unresolved captures.",
+        "Validate positive and negative label invariants."
+      ],
+      "tags": [
+        "labels",
+        "consent-banners"
+      ],
+      "files": [
+        "tasks/consent-banners/program.md",
+        "packages/pilot/README.md"
+      ],
+      "depends_on": [
+        "T001",
+        "T005"
+      ],
+      "created_at": "2026-09-07T21:13:21Z",
+      "updated_at": "2026-09-07T21:13:21Z"
+    },
+    {
+      "id": "T010",
+      "title": "Collect and split the Steel pilot corpus",
+      "priority": 1,
+      "status": "todo",
+      "details": "Collect a few hundred public pages, label them, and create grouped train, development, and unseen evaluation splits.",
+      "steps": [
+        "Collect positive and negative pages from EU and US locations.",
+        "Group related domains, templates, and session captures.",
+        "Human-label acceptable roots.",
+        "Write split manifests and summary statistics."
+      ],
+      "tags": [
+        "pilot",
+        "corpus",
+        "labels"
+      ],
+      "files": [
+        "tasks/consent-banners/program.md",
+        "packages/pilot/README.md"
+      ],
+      "depends_on": [
+        "T006",
+        "T009"
+      ],
+      "created_at": "2026-09-07T21:13:21Z",
+      "updated_at": "2026-09-07T21:13:21Z"
+    },
+    {
+      "id": "T011",
+      "title": "Extend the pilot evaluator for grouped splits",
+      "priority": 1,
+      "status": "todo",
+      "details": "Validate grouped split independence and report detection F1, page-presence F1, precision, recall, exact-root accuracy, and extra-root counts.",
+      "steps": [
+        "Add grouped split validation.",
+        "Report all required metrics from the input contract.",
+        "Add tests for malformed labels, missing predictions, wrong roots, and duplicate groups."
+      ],
+      "tags": [
+        "pilot",
+        "metrics",
+        "tests"
+      ],
+      "files": [
+        "packages/pilot/index.mjs",
+        "packages/pilot/cli.mjs",
+        "packages/pilot/test/evaluate.test.mjs",
+        "packages/pilot/README.md"
+      ],
+      "depends_on": [
+        "T009"
+      ],
+      "created_at": "2026-09-07T21:13:21Z",
+      "updated_at": "2026-09-07T21:13:21Z"
+    },
+    {
+      "id": "T012",
+      "title": "Create the consent rules seed",
+      "priority": 1,
+      "status": "todo",
+      "details": "Add the first human-auditable rules file for consent-banner candidates and features.",
+      "steps": [
+        "Create rules for banner text, role, position, size, visibility, controls, and known hard negatives.",
+        "Keep rules readable and within the declared limits.",
+        "Add vectorization tests over fixture snapshots."
+      ],
+      "tags": [
+        "consent-banners",
+        "rules",
+        "training"
+      ],
+      "files": [
+        "packages/consent-banners/package.json",
+        "tasks/consent-banners/program.md"
+      ],
+      "depends_on": [
+        "T003",
+        "T008",
+        "T010"
+      ],
+      "created_at": "2026-09-07T21:13:21Z",
+      "updated_at": "2026-09-07T21:13:21Z"
+    },
+    {
+      "id": "T013",
+      "title": "Implement model training and baselines",
+      "priority": 1,
+      "status": "todo",
+      "details": "Train and compare hand-written rules, the linear student, and the tree student on the same development data.",
+      "steps": [
+        "Add the fixed training entry point.",
+        "Fit the linear baseline.",
+        "Fit the LightGBM tree baseline.",
+        "Publish comparison output with accuracy, effort, cost, and latency fields."
+      ],
+      "tags": [
+        "training",
+        "models",
+        "baselines"
+      ],
+      "files": [
+        "IDEA.md",
+        "tasks/consent-banners/program.md"
+      ],
+      "depends_on": [
+        "T010",
+        "T012"
+      ],
+      "created_at": "2026-09-07T21:13:21Z",
+      "updated_at": "2026-09-07T21:13:21Z"
+    },
+    {
+      "id": "T014",
+      "title": "Implement the model artifact format",
+      "priority": 1,
+      "status": "todo",
+      "details": "Write and read model.smelt.json with metadata, feature names, calibration data, rules hash, and a packed forest column.",
+      "steps": [
+        "Define the artifact schema.",
+        "Pack forest arrays with stable endianness and alignment.",
+        "Verify sign agreement against the training library.",
+        "Add round-trip tests."
+      ],
+      "tags": [
+        "models",
+        "runtime",
+        "export"
+      ],
+      "files": [
+        "IDEA.md",
+        "packages/consent-banners/package.json"
+      ],
+      "depends_on": [
+        "T013"
+      ],
+      "created_at": "2026-09-07T21:13:21Z",
+      "updated_at": "2026-09-07T21:13:21Z"
+    },
+    {
+      "id": "T015",
+      "title": "Build tree scoring in the runtime path",
+      "priority": 1,
+      "status": "todo",
+      "details": "Decode the packed tree model and score candidates in pure JavaScript without adding runtime dependencies.",
+      "steps": [
+        "Add packed forest decoding.",
+        "Score candidate feature vectors.",
+        "Apply threshold calibration and root tie-breaks.",
+        "Measure model scoring cost."
+      ],
+      "tags": [
+        "runtime",
+        "models",
+        "performance"
+      ],
+      "files": [
+        "packages/runtime/index.mjs",
+        "packages/runtime/README.md"
+      ],
+      "depends_on": [
+        "T014"
+      ],
+      "created_at": "2026-09-07T21:13:21Z",
+      "updated_at": "2026-09-07T21:13:21Z"
+    },
+    {
+      "id": "T016",
+      "title": "Create the consent detector package",
+      "priority": 1,
+      "status": "todo",
+      "details": "Implement @smelt-oss/consent-banners with a one-call detect API, bundled rules, bundled model, typed errors, and structured page-level failures.",
+      "steps": [
+        "Add the package source files and exports map.",
+        "Implement detect(document) and detect(html).",
+        "Return found, banner, stats, and degraded fields.",
+        "Add tests for positive, negative, malformed, and truncated inputs."
+      ],
+      "tags": [
+        "consent-banners",
+        "api",
+        "runtime"
+      ],
+      "files": [
+        "packages/consent-banners/package.json",
+        "README.md"
+      ],
+      "depends_on": [
+        "T012",
+        "T015"
+      ],
+      "created_at": "2026-09-07T21:13:21Z",
+      "updated_at": "2026-09-07T21:13:21Z"
+    },
+    {
+      "id": "T017",
+      "title": "Build the browser benchmark harness",
+      "priority": 1,
+      "status": "todo",
+      "details": "Replay frozen DOMs in Playwright, run detect(document) in-page, and report p50, p95, initialization, first-call, and repeated-call latency.",
+      "steps": [
+        "Create the bench command.",
+        "Run three warm-ups and 30 measured repetitions per page.",
+        "Support ci-50, dev-1000, and frozen-1000 probe sets.",
+        "Write JSON benchmark reports."
+      ],
+      "tags": [
+        "benchmark",
+        "performance",
+        "release"
+      ],
+      "files": [
+        "IDEA.md",
+        "README.md"
+      ],
+      "depends_on": [
+        "T016"
+      ],
+      "created_at": "2026-09-07T21:13:21Z",
+      "updated_at": "2026-09-07T21:13:21Z"
+    },
+    {
+      "id": "T018",
+      "title": "Enforce size and line-count gates in CI",
+      "priority": 2,
+      "status": "todo",
+      "details": "Keep the runtime and consent package within declared byte and line budgets on Linux and Windows with Node.js 20 and 24.",
+      "steps": [
+        "Extend the existing verify command for the consent package.",
+        "Check runtime line count and gzip size.",
+        "Check total consent package gzip size.",
+        "Add CI matrix coverage for supported Node.js versions."
+      ],
+      "tags": [
+        "ci",
+        "size",
+        "runtime"
+      ],
+      "files": [
+        "package.json",
+        "scripts/check.mjs",
+        "packages/runtime/scripts/size.mjs",
+        "README.md"
+      ],
+      "depends_on": [
+        "T016"
+      ],
+      "created_at": "2026-09-07T21:13:21Z",
+      "updated_at": "2026-09-07T21:13:21Z"
+    },
+    {
+      "id": "T019",
+      "title": "Implement teacher adapters and label verification",
+      "priority": 2,
+      "status": "todo",
+      "details": "Add paid-tier teacher adapters with written no-competition rationales, prompt hashes, vendor metadata, and DOM verification of teacher roots.",
+      "steps": [
+        "Implement sanitized DOM serialization.",
+        "Add Gemini paid-tier and Anthropic adapters.",
+        "Record model IDs, prompt hashes, terms versions, and costs.",
+        "Verify visibility, geometry, and text plausibility."
+      ],
+      "tags": [
+        "teachers",
+        "labels",
+        "legal"
+      ],
+      "files": [
+        "IDEA.md",
+        "tasks/consent-banners/program.md"
+      ],
+      "depends_on": [
+        "T009",
+        "T005"
+      ],
+      "created_at": "2026-09-07T21:13:21Z",
+      "updated_at": "2026-09-07T21:13:21Z"
+    },
+    {
+      "id": "T020",
+      "title": "Run the bounded rules agent loop",
+      "priority": 2,
+      "status": "todo",
+      "details": "Implement and run the keep-or-discard loop that edits only rules.ts, respects cost and runtime limits, and compares against simpler baselines.",
+      "steps": [
+        "Create deterministic failure digests from results.jsonl.",
+        "Reject unsafe or oversized rules edits.",
+        "Apply the ratchet with an F1 epsilon and discard tracking.",
+        "Write an experiment log with diff, gate results, usage, and verdict."
+      ],
+      "tags": [
+        "agent-loop",
+        "training",
+        "experiments"
+      ],
+      "files": [
+        "IDEA.md",
+        "tasks/consent-banners/program.md"
+      ],
+      "depends_on": [
+        "T013",
+        "T017"
+      ],
+      "created_at": "2026-09-07T21:13:21Z",
+      "updated_at": "2026-09-07T21:13:21Z"
+    },
+    {
+      "id": "T021",
+      "title": "Integrate detection into a controlled Steel workflow",
+      "priority": 1,
+      "status": "todo",
+      "details": "Run Smelt detection inside a Steel browser before the existing agent requests model interpretation, without changing prompts or action policy.",
+      "steps": [
+        "Add the integration hook for selected elements.",
+        "Keep the existing agent model, prompts, and action policy fixed.",
+        "Record task completion, model calls, cost per completion, and added latency."
+      ],
+      "tags": [
+        "steel",
+        "integration",
+        "pilot"
+      ],
+      "files": [
+        "IDEA.md",
+        "tasks/consent-banners/program.md"
+      ],
+      "depends_on": [
+        "T002",
+        "T016"
+      ],
+      "created_at": "2026-09-07T21:13:21Z",
+      "updated_at": "2026-09-07T21:13:21Z"
+    },
+    {
+      "id": "T022",
+      "title": "Compare matched Steel workflows with and without Smelt",
+      "priority": 1,
+      "status": "todo",
+      "details": "Evaluate matched task cases with isolated browser state and decide whether Smelt improves completion or cost without a material regression.",
+      "steps": [
+        "Build the matched case set.",
+        "Run the baseline workflow.",
+        "Run the Smelt-assisted workflow.",
+        "Publish sample counts, uncertainty, costs, latency, and failure slices."
+      ],
+      "tags": [
+        "pilot",
+        "metrics",
+        "steel"
+      ],
+      "files": [
+        "IDEA.md",
+        "decisions/0003-steel-pilot-and-evaluation.md"
+      ],
+      "depends_on": [
+        "T021"
+      ],
+      "created_at": "2026-09-07T21:13:21Z",
+      "updated_at": "2026-09-07T21:13:21Z"
+    },
+    {
+      "id": "T023",
+      "title": "Prepare the 2026-10-16 pilot evidence review",
+      "priority": 1,
+      "status": "todo",
+      "details": "Summarize evidence for continuing, changing the task, or stopping the integration at the six-week review date.",
+      "steps": [
+        "Collect baseline, model, agent-loop, and workflow comparison results.",
+        "Compare results against predeclared limits.",
+        "Draft the decision record with consequences and next steps."
+      ],
+      "tags": [
+        "pilot",
+        "governance",
+        "decision"
+      ],
+      "files": [
+        "IDEA.md",
+        "decisions/0003-steel-pilot-and-evaluation.md",
+        "decisions/README.md"
+      ],
+      "depends_on": [
+        "T022",
+        "T020"
+      ],
+      "created_at": "2026-09-07T21:13:21Z",
+      "updated_at": "2026-09-07T21:13:21Z"
+    },
+    {
+      "id": "T024",
+      "title": "Expand to the release corpus if the pilot passes",
+      "priority": 2,
+      "status": "todo",
+      "details": "Collect and label the 5,000-page corpus with 3,000 training pages, 1,000 development pages, and 1,000 frozen test pages.",
+      "steps": [
+        "Collect one page per domain from public sources.",
+        "Balance positive, negative, EU, US, known-CMP, and custom-banner cases.",
+        "Group related domains and duplicate templates before splitting.",
+        "Human-verify the frozen test set in full."
+      ],
+      "tags": [
+        "corpus",
+        "release",
+        "labels"
+      ],
+      "files": [
+        "IDEA.md",
+        "tasks/consent-banners/program.md"
+      ],
+      "depends_on": [
+        "T023"
+      ],
+      "created_at": "2026-09-07T21:13:21Z",
+      "updated_at": "2026-09-07T21:13:21Z"
+    },
+    {
+      "id": "T025",
+      "title": "Build corpus publication and takedown workflow",
+      "priority": 2,
+      "status": "todo",
+      "details": "Prepare public and gated corpus layers, PII scrubbing, corpus manifests, licenses, and a public takedown process.",
+      "steps": [
+        "Define the public layer contents.",
+        "Define gated WARC and unscrubbed snapshot access.",
+        "Run PII scrubbing before publication.",
+        "Add the takedown form and removal SLA documentation."
+      ],
+      "tags": [
+        "corpus",
+        "legal",
+        "release"
+      ],
+      "files": [
+        "IDEA.md",
+        "CONTRIBUTING.md"
+      ],
+      "depends_on": [
+        "T024"
+      ],
+      "created_at": "2026-09-07T21:13:21Z",
+      "updated_at": "2026-09-07T21:13:21Z"
+    },
+    {
+      "id": "T026",
+      "title": "Create MODEL.md for the consent package",
+      "priority": 2,
+      "status": "todo",
+      "details": "Document the task, corpus revision, teachers, prompt hash, terms versions, training date, measured F1, size, latency, and known blind spots.",
+      "steps": [
+        "Add the model card template.",
+        "Fill in teacher and corpus provenance.",
+        "Publish known-CMP and custom-banner slices.",
+        "Record cross-origin frame and delayed-banner limitations."
+      ],
+      "tags": [
+        "docs",
+        "release",
+        "consent-banners"
+      ],
+      "files": [
+        "packages/consent-banners/package.json",
+        "README.md",
+        "IDEA.md"
+      ],
+      "depends_on": [
+        "T016",
+        "T024"
+      ],
+      "created_at": "2026-09-07T21:13:21Z",
+      "updated_at": "2026-09-07T21:13:21Z"
+    },
+    {
+      "id": "T027",
+      "title": "Implement the npm export path",
+      "priority": 2,
+      "status": "todo",
+      "details": "Export one package with bundled rules, an inlined model copy, the JSON artifact, and integrity metadata.",
+      "steps": [
+        "Bundle the rules and model into a self-contained ESM file.",
+        "Keep model.smelt.json for audit.",
+        "Compute sha256 values for rules, model, and corpus revision.",
+        "Verify the package size gate."
+      ],
+      "tags": [
+        "export",
+        "npm",
+        "release"
+      ],
+      "files": [
+        "packages/consent-banners/package.json",
+        "IDEA.md"
+      ],
+      "depends_on": [
+        "T014",
+        "T016",
+        "T018"
+      ],
+      "created_at": "2026-09-07T21:13:21Z",
+      "updated_at": "2026-09-07T21:13:21Z"
+    },
+    {
+      "id": "T028",
+      "title": "Create the CLI launcher and Python factory bridge",
+      "priority": 3,
+      "status": "todo",
+      "details": "Add @smelt-oss/cli as a thin Node launcher that provisions a uv-managed Python environment and runs crawl, train, loop, test, bench, and export commands.",
+      "steps": [
+        "Create the CLI package and command surface.",
+        "Provision pinned Python wheels on first run.",
+        "Measure first-run provisioning time.",
+        "Test Linux, Windows, and WSL fallback behavior."
+      ],
+      "tags": [
+        "cli",
+        "python",
+        "factory"
+      ],
+      "files": [
+        "IDEA.md",
+        "README.md"
+      ],
+      "depends_on": [
+        "T013",
+        "T017",
+        "T027"
+      ],
+      "created_at": "2026-09-07T21:13:21Z",
+      "updated_at": "2026-09-07T21:13:21Z"
+    },
+    {
+      "id": "T029",
+      "title": "Create registry.json and registry CI",
+      "priority": 3,
+      "status": "todo",
+      "details": "Add an in-repo registry with task metadata, hashes, gate results, tiers, and CI checks that reproduce public-layer F1 and size.",
+      "steps": [
+        "Define the registry schema.",
+        "Add the first consent-banner entry.",
+        "Check hashes and reproducible metrics in CI.",
+        "Document stale and archived registry states."
+      ],
+      "tags": [
+        "registry",
+        "ci",
+        "release"
+      ],
+      "files": [
+        "IDEA.md",
+        "README.md"
+      ],
+      "depends_on": [
+        "T025",
+        "T027"
+      ],
+      "created_at": "2026-09-07T21:13:21Z",
+      "updated_at": "2026-09-07T21:13:21Z"
+    },
+    {
+      "id": "T030",
+      "title": "Build the metrics dashboard",
+      "priority": 3,
+      "status": "todo",
+      "details": "Publish metrics.json and a static GitHub Pages dashboard for pilot results, package signals, registry status, and opt-in completion signals.",
+      "steps": [
+        "Define metrics.json.",
+        "Collect npm, PyPI, GitHub, registry, CI, and adopter inputs.",
+        "Label opt-in counts as lower bounds.",
+        "Publish the static page from a scheduled workflow."
+      ],
+      "tags": [
+        "metrics",
+        "dashboard",
+        "governance"
+      ],
+      "files": [
+        "IDEA.md",
+        "ADOPTERS.md",
+        "README.md"
+      ],
+      "depends_on": [
+        "T023",
+        "T029"
+      ],
+      "created_at": "2026-09-07T21:13:21Z",
+      "updated_at": "2026-09-07T21:13:21Z"
+    },
+    {
+      "id": "T031",
+      "title": "Register release handles and recheck namespace claims",
+      "priority": 2,
+      "status": "todo",
+      "details": "Register the smelt-oss GitHub organization and @smelt-oss npm scope before first publish, and recheck all recorded registry names on publish day.",
+      "steps": [
+        "Recheck npm, PyPI, GitHub, and domain records with direct lookups.",
+        "Register the GitHub organization and npm scope.",
+        "Record updated checks in a new decision record if facts changed."
+      ],
+      "tags": [
+        "release",
+        "naming",
+        "governance"
+      ],
+      "files": [
+        "decisions/0002-naming-and-handles.md",
+        "README.md",
+        "IDEA.md"
+      ],
+      "depends_on": [
+        "T023"
+      ],
+      "created_at": "2026-09-07T21:13:21Z",
+      "updated_at": "2026-09-07T21:13:21Z"
+    },
+    {
+      "id": "T032",
+      "title": "Automate releases for npm packages",
+      "priority": 3,
+      "status": "todo",
+      "details": "Add tag-based release automation so a second maintainer can publish the runtime, consent package, CLI, model card, benchmark reports, and artifacts.",
+      "steps": [
+        "Add versioning and changelog workflow.",
+        "Publish packages from CI on signed tags.",
+        "Attach benchmark reports and reproduction artifacts.",
+        "Document the release procedure."
+      ],
+      "tags": [
+        "release",
+        "ci",
+        "governance"
+      ],
+      "files": [
+        "IDEA.md",
+        "CONTRIBUTING.md",
+        "package.json"
+      ],
+      "depends_on": [
+        "T027",
+        "T031"
+      ],
+      "created_at": "2026-09-07T21:13:21Z",
+      "updated_at": "2026-09-07T21:13:21Z"
+    },
+    {
+      "id": "T033",
+      "title": "Build the opt-in quickstart completion flow",
+      "priority": 3,
+      "status": "todo",
+      "details": "Add a quickstart path that runs without telemetry and offers a pre-filled issue plus an ADOPTERS.md pull request invitation.",
+      "steps": [
+        "Create the quickstart command or documentation path.",
+        "Generate the pre-filled GitHub issue link.",
+        "Document the ADOPTERS.md entry format.",
+        "Ensure no CLI telemetry is sent."
+      ],
+      "tags": [
+        "quickstart",
+        "privacy",
+        "adoption"
+      ],
+      "files": [
+        "README.md",
+        "ADOPTERS.md",
+        "CONTRIBUTING.md"
+      ],
+      "depends_on": [
+        "T028"
+      ],
+      "created_at": "2026-09-07T21:13:21Z",
+      "updated_at": "2026-09-07T21:13:21Z"
+    },
+    {
+      "id": "T034",
+      "title": "Add v0.2 watch mode",
+      "priority": 4,
+      "status": "todo",
+      "details": "Implement the experimental watch API with MutationObserver, debounce, idle scheduling, cancellation, and navigation retriggers.",
+      "steps": [
+        "Add watch(doc, callback, options).",
+        "Debounce childList and subtree changes.",
+        "Cancel stale detection runs with revision tokens.",
+        "Add browser tests for single-page app mutations."
+      ],
+      "tags": [
+        "v0.2",
+        "runtime",
+        "browser"
+      ],
+      "files": [
+        "IDEA.md",
+        "packages/runtime/README.md"
+      ],
+      "depends_on": [
+        "T016",
+        "T017"
+      ],
+      "created_at": "2026-09-07T21:13:21Z",
+      "updated_at": "2026-09-07T21:13:21Z"
+    },
+    {
+      "id": "T035",
+      "title": "Add v0.2 frame coverage",
+      "priority": 4,
+      "status": "todo",
+      "details": "Support all-frames extension detection for cross-origin consent banners and aggregate frame results in the background context.",
+      "steps": [
+        "Run Tier 0 detection in each content-script frame.",
+        "Aggregate results by frame ID.",
+        "Report cross-origin frame blind spots and coverage metrics."
+      ],
+      "tags": [
+        "v0.2",
+        "browser",
+        "frames"
+      ],
+      "files": [
+        "IDEA.md",
+        "tasks/consent-banners/program.md"
+      ],
+      "depends_on": [
+        "T016",
+        "T024"
+      ],
+      "created_at": "2026-09-07T21:13:21Z",
+      "updated_at": "2026-09-07T21:13:21Z"
+    },
+    {
+      "id": "T036",
+      "title": "Add local open-weight teacher support",
+      "priority": 4,
+      "status": "todo",
+      "details": "Provide a local teacher path for relabeling or terms-risk escape, with provenance and quality reports comparable to hosted teachers.",
+      "steps": [
+        "Choose the local teacher interface.",
+        "Run the same sanitized DOM inputs.",
+        "Record model provenance and cost.",
+        "Compare agreement against hosted teachers and human audit."
+      ],
+      "tags": [
+        "v0.2",
+        "teachers",
+        "privacy"
+      ],
+      "files": [
+        "IDEA.md"
+      ],
+      "depends_on": [
+        "T019",
+        "T024"
+      ],
+      "created_at": "2026-09-07T21:13:21Z",
+      "updated_at": "2026-09-07T21:13:21Z"
+    },
+    {
+      "id": "T037",
+      "title": "Select and specify the second detector task",
+      "priority": 4,
+      "status": "todo",
+      "details": "Choose the next detector from Steel failures and external adopter needs, then write its task specification, labels, baselines, and evaluation gates.",
+      "steps": [
+        "Review post-pilot failures and adopter requests.",
+        "Select the next task with a small-detector fit check.",
+        "Write the new program.md.",
+        "Define labels and release gates before collection."
+      ],
+      "tags": [
+        "v0.2",
+        "planning",
+        "factory"
+      ],
+      "files": [
+        "IDEA.md",
+        "tasks/consent-banners/program.md"
+      ],
+      "depends_on": [
+        "T023",
+        "T033"
+      ],
+      "created_at": "2026-09-07T21:13:21Z",
+      "updated_at": "2026-09-07T21:13:21Z"
+    },
+    {
+      "id": "T038",
+      "title": "Demonstrate contributor rebuild of the first task",
+      "priority": 4,
+      "status": "todo",
+      "details": "Have a contributor rebuild the consent detector from the public corpus layer and document the gaps found in the factory.",
+      "steps": [
+        "Publish the reproduction instructions.",
+        "Run a clean-machine rebuild from public artifacts.",
+        "Compare hashes, F1, size, and latency reports.",
+        "Fix or document any non-reproducible steps."
+      ],
+      "tags": [
+        "v0.2",
+        "reproducibility",
+        "factory"
+      ],
+      "files": [
+        "README.md",
+        "CONTRIBUTING.md",
+        "IDEA.md"
+      ],
+      "depends_on": [
+        "T025",
+        "T028",
+        "T032"
+      ],
+      "created_at": "2026-09-07T21:13:21Z",
+      "updated_at": "2026-09-07T21:13:21Z"
+    },
+    {
+      "id": "T039",
+      "title": "Write the archive and transfer procedure",
+      "priority": 5,
+      "status": "todo",
+      "details": "Document the evidence publication, 14-day comment window, maintainer transfer offer, final tag, artifact preservation, and POSTMORTEM.md process.",
+      "steps": [
+        "Write the procedure in project documentation.",
+        "Reference decision 0003 and the public-launch review dates.",
+        "Add a POSTMORTEM.md template."
+      ],
+      "tags": [
+        "governance",
+        "archive"
+      ],
+      "files": [
+        "IDEA.md",
+        "decisions/0001-kill-criteria-clock.md",
+        "decisions/0003-steel-pilot-and-evaluation.md"
+      ],
+      "depends_on": [
+        "T023"
+      ],
+      "created_at": "2026-09-07T21:13:21Z",
+      "updated_at": "2026-09-07T21:13:21Z"
+    }
+  ]
+}
