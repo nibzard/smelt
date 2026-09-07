@@ -10,6 +10,7 @@
   },
   "exports": {
     ".": "./index.mjs",
+    "./replay": "./replay.mjs",
     "./steel": "./steel.mjs",
     "./snapshot.schema.json": "./schemas/snapshot.schema.json",
     "./features.schema.json": "./schemas/features.schema.json"
@@ -19,6 +20,7 @@
   },
   "files": [
     "index.mjs",
+    "replay.mjs",
     "schemas/",
     "fixtures/"
   ],
@@ -34,7 +36,7 @@
       "optional": true
     }
   },
-  "devDependencies": {
+  "dependencies": {
     "linkedom": "^0.18.4"
   }
 }

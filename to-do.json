@@ -225,8 +225,8 @@
       "id": "T008",
       "title": "Implement the layout shim and parity fixture",
       "priority": 1,
-      "status": "todo",
-      "details": "Make Node replay over frozen snapshots return the same feature vectors as browser execution for geometry-dependent rules.",
+      "status": "done",
+      "details": "Implemented frozen snapshot replay for Node by reconstructing a stripped DOM and injecting captured layout APIs, plus an exact browser-versus-Node parity fixture for geometry-dependent rule vectors.",
       "steps": [
         "Inject frozen layout values into the DOM API used by rules.",
         "Build a browser-versus-Node parity runner.",
@@ -238,15 +238,19 @@
         "ci"
       ],
       "files": [
-        "IDEA.md",
-        "packages/runtime/README.md"
+        "packages/capture/replay.mjs",
+        "packages/capture/test/replay.test.mjs",
+        "packages/capture/README.md",
+        "packages/capture/package.json",
+        "to-do.json"
       ],
       "depends_on": [
         "T005",
         "T003"
       ],
       "created_at": "2026-09-07T21:13:21Z",
-      "updated_at": "2026-09-07T21:13:21Z"
+      "updated_at": "2026-09-07T22:04:20Z",
+      "blockers": []
     },
     {
       "id": "T009",

@@ -48,3 +48,19 @@ not want the endpoint in the config file. The adapter accepts `chromium` and
 
 Keep generated captures in `corpus/`. Do not commit Steel credentials,
 customer-session content, or raw crawl output.
+
+## Frozen replay
+
+Use `@smelt-oss/capture/replay` to run Node rules against a stripped snapshot
+with captured layout values:
+
+```js
+import {runFrozenSnapshot} from '@smelt-oss/capture/replay'
+
+const {run, elementsById} = runFrozenSnapshot(rules, snapshot, features)
+```
+
+The replay shim patches `getBoundingClientRect()`, `getComputedStyle()`,
+`innerWidth`, `innerHeight`, and `devicePixelRatio` with values from the
+feature file. `compareFrozenReplay()` compares browser and Node vectors for
+CI fixtures.
