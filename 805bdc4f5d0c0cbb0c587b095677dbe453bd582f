@@ -1,0 +1,1 @@
+T016 context: adds the public @smelt-oss/consent-banners detect API over the existing rules and runtime model scorer. The bundled model is a deterministic seed artifact for fixture coverage until the human-labeled corpus produces a trained artifact.
