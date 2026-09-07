@@ -47,8 +47,9 @@ sample counts and uncertainty for every metric.
 
 ## Input contract
 
-Labels contain `schemaVersion: 1`, a `split` (`train`, `development`, or `test`),
-and a nonempty `pages` array. Each page contains:
+Labels can use the compact evaluator shape with `schemaVersion: 1`, a `split`
+(`train`, `development`, or `test`), and a nonempty `pages` array. Each page
+contains:
 
 - `id`: a unique capture identifier.
 - `group`: the domain/template group used when creating independent splits.
@@ -71,3 +72,10 @@ This evaluator checks one split. It does not verify human labels, element
 existence, cross-split group separation, browser latency, or workflow costs.
 Capture validation and independent split checks must precede release evaluation.
 Keep unseen test labels outside agent-loop inputs. CI uses synthetic examples only.
+
+The canonical consent-label schema lives in
+`tasks/consent-banners/labels.schema.json`. It records `has_banner`,
+`acceptable_roots`, `banner_root`, `banner_kind`, `jurisdiction`, `frame`,
+`evidence`, `confidence`, and `label_status`. Reviewed labels convert to the
+compact evaluator shape. `unresolved` labels stay out of scoring and must carry
+`review_notes` so they can enter the human review queue.

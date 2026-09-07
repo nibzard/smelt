@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smelt-oss.local/schemas/consent-banner-labels.schema.json",
+  "title": "Consent-banner page labels",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "split", "pages"],
+  "properties": {
+    "schema_version": {"type": "integer", "const": 1},
+    "split": {"type": "string", "enum": ["train", "development", "test"]},
+    "pages": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/page"}
+    }
+  },
+  "$defs": {
+    "page": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "group",
+        "label_status",
+        "has_banner",
+        "acceptable_roots",
+        "banner_root",
+        "banner_kind",
+        "jurisdiction",
+        "frame",
+        "evidence",
+        "confidence"
+      ],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "group": {"type": "string", "minLength": 1},
+        "label_status": {"type": "string", "enum": ["reviewed", "unresolved"]},
+        "has_banner": {"type": ["boolean", "null"]},
+        "acceptable_roots": {
+          "type": "array",
+          "items": {"type": "string", "pattern": "^e[0-9]+$"},
+          "uniqueItems": true
+        },
+        "banner_root": {"type": ["string", "null"], "pattern": "^e[0-9]+$"},
+        "banner_kind": {
+          "type": ["string", "null"],
+          "enum": ["banner", "dialog", "platform", "custom", "unknown", null]
+        },
+        "jurisdiction": {
+          "type": ["string", "null"],
+          "enum": ["eea", "us", "unknown", null]
+        },
+        "frame": {"$ref": "#/$defs/frame"},
+        "evidence": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/evidence"}
+        },
+        "confidence": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+        "review_notes": {"type": "string"}
+      }
+    },
+    "frame": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "frame_id", "element_id"],
+      "properties": {
+        "state": {
+          "type": "string",
+          "enum": ["top", "same_origin", "cross_origin", "inaccessible", "unknown"]
+        },
+        "frame_id": {"type": ["string", "null"], "pattern": "^f[0-9]+$"},
+        "element_id": {"type": ["string", "null"], "pattern": "^e[0-9]+$"}
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "value"],
+      "properties": {
+        "kind": {"type": "string", "enum": ["text", "attribute", "geometry", "teacher", "verifier"]},
+        "value": {"type": "string", "minLength": 1},
+        "element_id": {"type": ["string", "null"], "pattern": "^e[0-9]+$"}
+      }
+    }
+  }
+}

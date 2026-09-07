@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smelt-oss.local/schemas/consent-banner-review-queue.schema.json",
+  "title": "Consent-banner human review queue",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "generated_at", "items"],
+  "properties": {
+    "schema_version": {"type": "integer", "const": 1},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "items": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/item"}
+    }
+  },
+  "$defs": {
+    "item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capture_id", "group", "reason", "source"],
+      "properties": {
+        "capture_id": {"type": "string", "minLength": 1},
+        "group": {"type": "string", "minLength": 1},
+        "reason": {"type": "string", "minLength": 1},
+        "source": {"type": "string", "enum": ["teacher_disagreement", "verifier_reject", "frame_inaccessible", "human_flag"]},
+        "snapshot_path": {"type": "string"},
+        "notes": {"type": "string"}
+      }
+    }
+  }
+}

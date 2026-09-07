@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "split": "development",
+  "pages": [
+    {
+      "id": "synthetic-banner",
+      "group": "template-a",
+      "label_status": "reviewed",
+      "has_banner": true,
+      "acceptable_roots": ["e1", "e2"],
+      "banner_root": "e1",
+      "banner_kind": "dialog",
+      "jurisdiction": "eea",
+      "frame": {"state": "top", "frame_id": "f0", "element_id": null},
+      "evidence": [{"kind": "text", "value": "We use cookies", "element_id": "e1"}],
+      "confidence": 0.96
+    },
+    {
+      "id": "synthetic-clear-page",
+      "group": "template-b",
+      "label_status": "reviewed",
+      "has_banner": false,
+      "acceptable_roots": [],
+      "banner_root": null,
+      "banner_kind": "unknown",
+      "jurisdiction": "us",
+      "frame": {"state": "top", "frame_id": "f0", "element_id": null},
+      "evidence": [],
+      "confidence": 0.92
+    },
+    {
+      "id": "synthetic-inaccessible-frame",
+      "group": "template-c",
+      "label_status": "unresolved",
+      "has_banner": null,
+      "acceptable_roots": [],
+      "banner_root": null,
+      "banner_kind": null,
+      "jurisdiction": null,
+      "frame": {"state": "inaccessible", "frame_id": "f1", "element_id": "e7"},
+      "evidence": [{"kind": "verifier", "value": "Frame content was inaccessible."}],
+      "confidence": null,
+      "review_notes": "Human review must inspect the inaccessible frame."
+    }
+  ]
+}
