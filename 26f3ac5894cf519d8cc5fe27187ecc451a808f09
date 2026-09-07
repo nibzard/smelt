@@ -1,0 +1,1 @@
+T006 adds a Steel capture adapter that connects to a configured Steel browser endpoint through Playwright, injects the in-page capture function with addInitScript, and writes snapshot, feature, and metadata JSON files under the configured corpus output directory. Tests use a fake page object so CI does not need Steel credentials.
