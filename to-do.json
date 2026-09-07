@@ -75,7 +75,7 @@
       "id": "T003",
       "title": "Finish the runtime port against the contract",
       "priority": 1,
-      "status": "todo",
+      "status": "done",
       "details": "Complete the Fathom subset in @smelt-oss/runtime with the exact public API, dropped features, eager plan execution, element budget, and typed errors.",
       "steps": [
         "Audit all runtime modules against CONTRACTS.md.",
@@ -91,10 +91,14 @@
         "packages/runtime/CONTRACTS.md",
         "packages/runtime/index.mjs",
         "packages/runtime/plan.mjs",
-        "packages/runtime/executor.mjs"
+        "packages/runtime/executor.mjs",
+        "packages/runtime/lhs.mjs",
+        "packages/runtime/test/ruleset.test.mjs",
+        "to-do.json"
       ],
       "created_at": "2026-09-07T21:13:21Z",
-      "updated_at": "2026-09-07T21:13:21Z"
+      "updated_at": "2026-09-07T21:28:47Z",
+      "blockers": []
     },
     {
       "id": "T004",

@@ -1,0 +1,36 @@
+{
+  "name": "@smelt-oss/runtime",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Smelt runtime: rules evaluation plus tree scoring in plain JavaScript. Zero dependencies, pure ESM, Tier 0 only (see IDEA.md 3.4).",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
+  "exports": {
+    ".": "./index.mjs",
+    "./errors": "./errors.mjs",
+    "./utils": "./utils.mjs",
+    "./fnodes": "./fnodes.mjs",
+    "./sides": "./sides.mjs",
+    "./lhs": "./lhs.mjs",
+    "./rhs": "./rhs.mjs",
+    "./rule": "./rule.mjs",
+    "./plan": "./plan.mjs",
+    "./executor": "./executor.mjs"
+  },
+  "files": [
+    "*.mjs",
+    "scripts/"
+  ],
+  "scripts": {
+    "test": "node --test",
+    "build": "node scripts/build.mjs",
+    "size": "node scripts/size.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "linkedom": "^0.18.4"
+  }
+}
