@@ -10,8 +10,12 @@
   },
   "exports": {
     ".": "./index.mjs",
+    "./steel": "./steel.mjs",
     "./snapshot.schema.json": "./schemas/snapshot.schema.json",
     "./features.schema.json": "./schemas/features.schema.json"
+  },
+  "bin": {
+    "smelt-steel-capture": "./steel-cli.mjs"
   },
   "files": [
     "index.mjs",
@@ -19,7 +23,16 @@
     "fixtures/"
   ],
   "scripts": {
+    "steel:capture": "node steel-cli.mjs",
     "test": "node --test"
+  },
+  "peerDependencies": {
+    "playwright": "^1.63.0"
+  },
+  "peerDependenciesMeta": {
+    "playwright": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "linkedom": "^0.18.4"

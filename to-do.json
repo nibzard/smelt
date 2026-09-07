@@ -168,8 +168,8 @@
       "id": "T006",
       "title": "Build the Steel capture adapter",
       "priority": 1,
-      "status": "todo",
-      "details": "Use dedicated Steel browsers to collect public pages with controlled browser state, location, viewport, timing, and metadata.",
+      "status": "done",
+      "details": "Built the Steel capture adapter with JSON config loading, Playwright-based Steel browser connection, in-page capture injection, controlled viewport/location/state metadata, and corpus writes for snapshot, feature, and metadata files.",
       "steps": [
         "Create the adapter entry point and configuration format.",
         "Capture public pages with headed Chromium or Firefox.",
@@ -182,14 +182,19 @@
         "corpus"
       ],
       "files": [
-        "IDEA.md",
-        "CONTRIBUTING.md"
+        "packages/capture/README.md",
+        "packages/capture/package.json",
+        "packages/capture/steel-cli.mjs",
+        "packages/capture/steel.mjs",
+        "packages/capture/test/steel.test.mjs",
+        "to-do.json"
       ],
       "depends_on": [
         "T005"
       ],
       "created_at": "2026-09-07T21:13:21Z",
-      "updated_at": "2026-09-07T21:13:21Z"
+      "updated_at": "2026-09-07T21:53:03Z",
+      "blockers": []
     },
     {
       "id": "T007",
