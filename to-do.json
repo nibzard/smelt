@@ -132,7 +132,7 @@
       "id": "T005",
       "title": "Implement the frozen snapshot schema",
       "priority": 1,
-      "status": "todo",
+      "status": "done",
       "details": "Define and implement capture output for stripped DOM snapshots, element IDs, layout values, intrinsic features, and capture metadata.",
       "steps": [
         "Define the JSON schema for snapshots and feature files.",
@@ -146,14 +146,23 @@
         "layout"
       ],
       "files": [
-        "IDEA.md",
-        "tasks/consent-banners/program.md"
+        "packages/capture/index.mjs",
+        "packages/capture/schemas/snapshot.schema.json",
+        "packages/capture/schemas/features.schema.json",
+        "packages/capture/fixtures/positive.html",
+        "packages/capture/fixtures/negative.html",
+        "packages/capture/fixtures/delayed.html",
+        "packages/capture/fixtures/frame.html",
+        "packages/capture/test/capture.test.mjs",
+        "packages/capture/package.json",
+        "to-do.json"
       ],
       "depends_on": [
         "T001"
       ],
       "created_at": "2026-09-07T21:13:21Z",
-      "updated_at": "2026-09-07T21:13:21Z"
+      "updated_at": "2026-09-07T21:45:10Z",
+      "blockers": []
     },
     {
       "id": "T006",

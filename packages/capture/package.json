@@ -1,0 +1,27 @@
+{
+  "name": "@smelt-oss/capture",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Frozen DOM snapshot and feature capture schemas for Smelt corpora.",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
+  "exports": {
+    ".": "./index.mjs",
+    "./snapshot.schema.json": "./schemas/snapshot.schema.json",
+    "./features.schema.json": "./schemas/features.schema.json"
+  },
+  "files": [
+    "index.mjs",
+    "schemas/",
+    "fixtures/"
+  ],
+  "scripts": {
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "linkedom": "^0.18.4"
+  }
+}
