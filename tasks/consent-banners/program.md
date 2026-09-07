@@ -43,6 +43,41 @@ using the same development data. Select thresholds on development data only.
 Require an acceptable root for a true positive. A wrong root on a positive page
 counts as both a false positive and a false negative.
 
+## Baseline training
+
+Use the fixed consent trainer to compare the simpler baselines before running
+the agent loop:
+
+```sh
+npm run train --workspace @smelt-oss/consent-banners -- path/to/manifest.json runs/baselines.json
+```
+
+The manifest uses `schemaVersion: 1` and has `train` and `development` splits.
+Each split names one compact evaluator label file and matching frozen captures:
+
+```json
+{
+  "schemaVersion": 1,
+  "train": {
+    "labels": "train.labels.json",
+    "captures": [
+      {"id": "example", "snapshot": "example.snapshot.json", "features": "example.features.json"}
+    ]
+  },
+  "development": {
+    "labels": "development.labels.json",
+    "captures": [
+      {"id": "example-dev", "snapshot": "example-dev.snapshot.json", "features": "example-dev.features.json"}
+    ]
+  }
+}
+```
+
+The output compares `rules`, `linear`, and `lightgbm` on the development split.
+Each baseline reports accuracy, human effort, cost, and latency fields. Do not
+publish the report as release evidence until the grouped corpus and human labels
+exist.
+
 ## Steel workflow metrics
 
 Measure the current workflow baseline on the matched pilot case set before any

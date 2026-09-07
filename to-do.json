@@ -387,8 +387,8 @@
       "id": "T013",
       "title": "Implement model training and baselines",
       "priority": 1,
-      "status": "todo",
-      "details": "Train and compare hand-written rules, the linear student, and the tree student on the same development data.",
+      "status": "done",
+      "details": "Implemented the fixed consent baseline trainer. It vectorizes frozen captures, fits hand-written rules, a logistic linear student, and a LightGBM tree student, then writes one comparison report with accuracy, effort, cost, and latency fields.",
       "steps": [
         "Add the fixed training entry point.",
         "Fit the linear baseline.",
@@ -401,15 +401,20 @@
         "baselines"
       ],
       "files": [
-        "IDEA.md",
-        "tasks/consent-banners/program.md"
+        "packages/consent-banners/package.json",
+        "packages/consent-banners/train-cli.mjs",
+        "packages/consent-banners/train.mjs",
+        "packages/consent-banners/test/train.test.mjs",
+        "tasks/consent-banners/program.md",
+        "to-do.json"
       ],
       "depends_on": [
         "T010",
         "T012"
       ],
       "created_at": "2026-09-07T21:13:21Z",
-      "updated_at": "2026-09-07T21:13:21Z"
+      "updated_at": "2026-09-07T22:35:50Z",
+      "blockers": []
     },
     {
       "id": "T014",
