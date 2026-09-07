@@ -1,0 +1,1 @@
+T008 adds frozen snapshot replay outside the runtime core. The capture package reconstructs a stripped DOM with linkedom, patches layout APIs from feature files, and compares browser and Node vectors exactly for geometry-dependent rules.
