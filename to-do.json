@@ -48,8 +48,8 @@
       "id": "T002",
       "title": "Predeclare Steel workflow evaluation metrics",
       "priority": 1,
-      "status": "todo",
-      "details": "Define the primary workflow metric, minimum useful improvement, and acceptable regression limits before running the Steel comparison.",
+      "status": "done",
+      "details": "Predeclared the Steel workflow metric contract: cost per completed task is primary, useful improvement is at least 10 percent, completion and latency regression limits are fixed, and secondary metrics require sample counts and uncertainty.",
       "steps": [
         "Measure the current workflow baseline.",
         "Select the primary metric and secondary metrics.",
@@ -61,13 +61,15 @@
       ],
       "files": [
         "tasks/consent-banners/program.md",
-        "packages/pilot/README.md"
+        "packages/pilot/README.md",
+        "to-do.json"
       ],
       "depends_on": [
         "T001"
       ],
       "created_at": "2026-09-07T21:13:21Z",
-      "updated_at": "2026-09-07T21:13:21Z"
+      "updated_at": "2026-09-07T21:23:04Z",
+      "blockers": []
     },
     {
       "id": "T003",

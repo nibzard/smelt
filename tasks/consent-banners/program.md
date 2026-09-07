@@ -43,10 +43,36 @@ using the same development data. Select thresholds on development data only.
 Require an acceptable root for a true positive. A wrong root on a positive page
 counts as both a false positive and a false negative.
 
-Before the Steel workflow experiment, record its primary measure, minimum
-useful improvement, and acceptable regression limits. These values are pending
-baseline measurement. Release targets remain detection F1 of at least 0.90,
-under 50 KB gzipped, and under 5 ms at the 95th percentile on the reference machine.
+## Steel workflow metrics
+
+Measure the current workflow baseline on the matched pilot case set before any
+Smelt-assisted run. Use isolated browser state for each case. Keep the agent
+model, prompts, and action policy fixed.
+
+Primary metric: cost per completed task. Compute it as total workflow cost,
+including failed runs, divided by successful completions. Count model calls,
+Steel browser time, and any directly billed workflow step. Report browser
+runtime and infrastructure cost separately.
+
+Minimum useful improvement: the Smelt-assisted workflow must reduce cost per
+completed task by at least 10 percent against the baseline. The paired
+bootstrap 90 percent confidence interval must not include a cost increase.
+
+Task-completion regression limit: completion rate must not fall by more than
+two percentage points. If the baseline completes fewer than 50 percent of cases,
+Smelt must instead improve completion by at least five percentage points.
+
+Latency regression limit: added browser latency from detection and element
+handoff must stay under 250 ms at p95, and under 5 percent of baseline workflow
+wall time at p95. Report first-call, repeated-call, and end-to-end workflow
+latency separately.
+
+Secondary metrics: task completion, model calls per completed task, root
+acceptability, extra roots, failure slices, and human review effort. Publish
+sample counts and uncertainty for each metric.
+
+Release targets remain detection F1 of at least 0.90, under 50 KB gzipped, and
+under 5 ms at the 95th percentile on the reference machine.
 
 Use dedicated public Steel crawls first. Authorized session samples remain
 private evaluation inputs. Record browser, teacher, and human review costs.
