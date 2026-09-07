@@ -1,0 +1,1 @@
+T014 implemented model.smelt.json as an auditable JSON envelope with a little-endian base64 forest payload. The trainer emits the artifact from the LightGBM dump and records sign agreement against library predictions.
