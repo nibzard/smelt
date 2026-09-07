@@ -117,7 +117,8 @@ export function toEvaluationDataset(dataset) {
         id: page.id,
         group: page.group,
         hasBanner: page.has_banner,
-        acceptableRoots: page.acceptable_roots
+        acceptableRoots: page.acceptable_roots,
+        exactRoot: page.banner_root
     }));
     requireValue(pages.length > 0, 'No reviewed pages are available for evaluation.');
     return {schemaVersion: 1, split: dataset.split, pages};

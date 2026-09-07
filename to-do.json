@@ -38,10 +38,11 @@
       "files": [
         "decisions/0004-first-steel-detector-task.md",
         "decisions/README.md",
-        "tasks/consent-banners/program.md"
+        "tasks/consent-banners/program.md",
+        "to-do.json"
       ],
       "created_at": "2026-09-07T21:13:21Z",
-      "updated_at": "2026-09-07T21:18:32Z",
+      "updated_at": "2026-09-07T21:19:23Z",
       "blockers": []
     },
     {
@@ -60,15 +61,15 @@
         "metrics"
       ],
       "files": [
-        "tasks/consent-banners/program.md",
         "packages/pilot/README.md",
+        "tasks/consent-banners/program.md",
         "to-do.json"
       ],
       "depends_on": [
         "T001"
       ],
       "created_at": "2026-09-07T21:13:21Z",
-      "updated_at": "2026-09-07T21:23:04Z",
+      "updated_at": "2026-09-07T21:24:16Z",
       "blockers": []
     },
     {
@@ -89,15 +90,15 @@
       ],
       "files": [
         "packages/runtime/CONTRACTS.md",
-        "packages/runtime/index.mjs",
-        "packages/runtime/plan.mjs",
         "packages/runtime/executor.mjs",
+        "packages/runtime/index.mjs",
         "packages/runtime/lhs.mjs",
+        "packages/runtime/plan.mjs",
         "packages/runtime/test/ruleset.test.mjs",
         "to-do.json"
       ],
       "created_at": "2026-09-07T21:13:21Z",
-      "updated_at": "2026-09-07T21:28:47Z",
+      "updated_at": "2026-09-07T21:30:41Z",
       "blockers": []
     },
     {
@@ -117,15 +118,15 @@
       ],
       "files": [
         "packages/runtime/lhs.mjs",
-        "packages/runtime/utils.mjs",
         "packages/runtime/test/lhs.test.mjs",
+        "packages/runtime/utils.mjs",
         "to-do.json"
       ],
       "depends_on": [
         "T003"
       ],
       "created_at": "2026-09-07T21:13:21Z",
-      "updated_at": "2026-09-07T21:37:54Z",
+      "updated_at": "2026-09-07T21:38:56Z",
       "blockers": []
     },
     {
@@ -146,22 +147,22 @@
         "layout"
       ],
       "files": [
-        "packages/capture/index.mjs",
-        "packages/capture/schemas/snapshot.schema.json",
-        "packages/capture/schemas/features.schema.json",
-        "packages/capture/fixtures/positive.html",
-        "packages/capture/fixtures/negative.html",
         "packages/capture/fixtures/delayed.html",
         "packages/capture/fixtures/frame.html",
-        "packages/capture/test/capture.test.mjs",
+        "packages/capture/fixtures/negative.html",
+        "packages/capture/fixtures/positive.html",
+        "packages/capture/index.mjs",
         "packages/capture/package.json",
+        "packages/capture/schemas/features.schema.json",
+        "packages/capture/schemas/snapshot.schema.json",
+        "packages/capture/test/capture.test.mjs",
         "to-do.json"
       ],
       "depends_on": [
         "T001"
       ],
       "created_at": "2026-09-07T21:13:21Z",
-      "updated_at": "2026-09-07T21:45:10Z",
+      "updated_at": "2026-09-07T21:46:08Z",
       "blockers": []
     },
     {
@@ -193,7 +194,7 @@
         "T005"
       ],
       "created_at": "2026-09-07T21:13:21Z",
-      "updated_at": "2026-09-07T21:53:03Z",
+      "updated_at": "2026-09-07T21:55:54Z",
       "blockers": []
     },
     {
@@ -238,10 +239,10 @@
         "ci"
       ],
       "files": [
-        "packages/capture/replay.mjs",
-        "packages/capture/test/replay.test.mjs",
         "packages/capture/README.md",
         "packages/capture/package.json",
+        "packages/capture/replay.mjs",
+        "packages/capture/test/replay.test.mjs",
         "to-do.json"
       ],
       "depends_on": [
@@ -249,7 +250,7 @@
         "T003"
       ],
       "created_at": "2026-09-07T21:13:21Z",
-      "updated_at": "2026-09-07T22:04:20Z",
+      "updated_at": "2026-09-07T22:05:23Z",
       "blockers": []
     },
     {
@@ -274,9 +275,9 @@
         "packages/pilot/labels.mjs",
         "packages/pilot/test/evaluate.test.mjs",
         "tasks/consent-banners/labels.schema.json",
+        "tasks/consent-banners/program.md",
         "tasks/consent-banners/review-queue.json",
         "tasks/consent-banners/review-queue.schema.json",
-        "tasks/consent-banners/program.md",
         "to-do.json"
       ],
       "depends_on": [
@@ -284,15 +285,15 @@
         "T005"
       ],
       "created_at": "2026-09-07T21:13:21Z",
-      "updated_at": "2026-09-07T22:09:52Z",
+      "updated_at": "2026-09-07T22:11:09Z",
       "blockers": []
     },
     {
       "id": "T010",
       "title": "Collect and split the Steel pilot corpus",
       "priority": 1,
-      "status": "todo",
-      "details": "Collect a few hundred public pages, label them, and create grouped train, development, and unseen evaluation splits.",
+      "status": "blocked",
+      "details": "Blocked before collection. T010 requires dedicated Steel captures and human-reviewed labels. The workspace has no Steel browser WebSocket endpoint and no existing corpus artifacts to split.",
       "steps": [
         "Collect positive and negative pages from EU and US locations.",
         "Group related domains, templates, and session captures.",
@@ -305,22 +306,28 @@
         "labels"
       ],
       "files": [
+        "packages/pilot/README.md",
         "tasks/consent-banners/program.md",
-        "packages/pilot/README.md"
+        "to-do.json"
       ],
       "depends_on": [
         "T006",
         "T009"
       ],
       "created_at": "2026-09-07T21:13:21Z",
-      "updated_at": "2026-09-07T21:13:21Z"
+      "updated_at": "2026-09-07T22:14:37Z",
+      "blockers": [
+        "Human-reviewed acceptable roots are required before valid train, development, and test split labels can be produced.",
+        "No Steel browser WebSocket endpoint is configured. The capture adapter requires browser.wsEndpoint or STEEL_BROWSER_WS_ENDPOINT; only STEEL_API_KEY is present.",
+        "No existing approved public-layer corpus or raw captures are present in corpus/ or the repository."
+      ]
     },
     {
       "id": "T011",
       "title": "Extend the pilot evaluator for grouped splits",
       "priority": 1,
-      "status": "todo",
-      "details": "Validate grouped split independence and report detection F1, page-presence F1, precision, recall, exact-root accuracy, and extra-root counts.",
+      "status": "done",
+      "details": "Extended the pilot evaluator with grouped split independence checks, exact-root accuracy, grouped CLI support, and tests for malformed labels, missing predictions, wrong roots, and duplicate groups.",
       "steps": [
         "Add grouped split validation.",
         "Report all required metrics from the input contract.",
@@ -332,16 +339,19 @@
         "tests"
       ],
       "files": [
-        "packages/pilot/index.mjs",
+        "packages/pilot/README.md",
         "packages/pilot/cli.mjs",
+        "packages/pilot/index.mjs",
+        "packages/pilot/labels.mjs",
         "packages/pilot/test/evaluate.test.mjs",
-        "packages/pilot/README.md"
+        "to-do.json"
       ],
       "depends_on": [
         "T009"
       ],
       "created_at": "2026-09-07T21:13:21Z",
-      "updated_at": "2026-09-07T21:13:21Z"
+      "updated_at": "2026-09-07T22:19:31Z",
+      "blockers": []
     },
     {
       "id": "T012",

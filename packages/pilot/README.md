@@ -56,10 +56,28 @@ contains:
 - `hasBanner`: a Boolean label.
 - `acceptableRoots`: captured element IDs accepted by human review. Positive
   pages require at least one root. Negative pages require an empty array.
+- `exactRoot`: the canonical human root. This field is optional for compact
+  labels. If omitted, the evaluator uses the first acceptable root.
+
+Grouped evaluation accepts either an array of split datasets, a
+`{schemaVersion: 1, splits: [...]}` object, or a `{splits: {train, development,
+test}}` object. Each group can occur many times inside one split, but it must
+not occur in more than one split. This validates the domain/template separation
+used by the corpus split.
 
 Predictions are an array of `{id, roots}` records. Every labeled page needs one
 record. An empty `roots` array means no detection. Roots are ordered from highest
 to lowest rank. IDs refer to elements in that capture, not live page selectors.
+For grouped evaluation, predictions can be keyed by split:
+
+```json
+{
+  "train": [{"id": "capture-a", "roots": ["e1"]}],
+  "development": [{"id": "capture-b", "roots": []}]
+}
+```
+
+A flat prediction array can also include `split` on each prediction record.
 
 Only the first root contributes to detection scoring. A wrong root on a positive
 page counts as both a false positive and a false negative. Extra returned roots
@@ -68,10 +86,11 @@ Undefined metrics return `null`, including F1 for an all-negative set with no
 detections. Malformed or incomplete input fails instead of silently reducing
 the evaluation denominator.
 
-This evaluator checks one split. It does not verify human labels, element
-existence, cross-split group separation, browser latency, or workflow costs.
-Capture validation and independent split checks must precede release evaluation.
-Keep unseen test labels outside agent-loop inputs. CI uses synthetic examples only.
+This evaluator checks one split with `evaluate()` and grouped split independence
+with `evaluateGroupedSplits()`. It does not verify human labels, element
+existence, browser latency, or workflow costs. Capture validation must precede
+release evaluation. Keep unseen test labels outside agent-loop inputs. CI uses
+synthetic examples only.
 
 The canonical consent-label schema lives in
 `tasks/consent-banners/labels.schema.json`. It records `has_banner`,

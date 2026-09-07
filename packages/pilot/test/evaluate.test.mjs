@@ -6,7 +6,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
-import {evaluate, reviewQueueFromLabels} from '../index.mjs';
+import {evaluate, evaluateGroupedSplits, reviewQueueFromLabels} from '../index.mjs';
 
 const page = (id, hasBanner = true) => ({
     id, group: id, hasBanner, acceptableRoots: hasBanner ? ['banner', 'wrapper'] : []
@@ -38,6 +38,20 @@ test('scores mixed cases and only accepts the highest-ranked root', () => {
     assert.equal(report.presence.f1, 2 / 3);
     assert.equal(report.trueNegatives, 1);
     assert.equal(report.extraRoots, 1);
+    assert.equal(report.exactRootAccuracy, 0);
+});
+
+test('reports exact-root accuracy from canonical roots', () => {
+    const report = evaluate(dataset(
+        {...page('a'), exactRoot: 'banner'},
+        {...page('b'), exactRoot: 'banner'}
+    ), [
+        {id: 'a', roots: ['wrapper']},
+        {id: 'b', roots: ['banner']}
+    ]);
+    assert.equal(report.detection.f1, 1);
+    assert.equal(report.exactRootAccuracy, 1 / 2);
+    assert.equal(report.outcomes[0].exactRoot, 'banner');
 });
 
 test('does not invent a perfect score for an all-negative set', () => {
@@ -61,9 +75,41 @@ test('rejects inconsistent labels and unsupported datasets', () => {
     assert.throws(() => evaluate(dataset(), []), /nonempty/);
     assert.throws(() => evaluate(dataset(page('a'), page('a')), []), /unique/);
     assert.throws(() => evaluate(dataset({...page('a'), acceptableRoots: []}), []), /disagree/);
+    assert.throws(() => evaluate(dataset({...page('a'), exactRoot: 'body'}), []), /exactRoot must be acceptable/);
+    assert.throws(() => evaluate(dataset({...page('a', false), exactRoot: 'banner'}), []), /must not have exactRoot/);
     assert.throws(() => evaluate(dataset({...page('a'), group: ''}), []), /group/);
     assert.throws(() => evaluate({schemaVersion: 2}, []), /schemaVersion/);
     assert.throws(() => evaluate({...dataset(page('a')), split: 'unknown'}, []), /split/);
+});
+
+test('scores grouped splits and rejects groups crossing splits', () => {
+    const train = {schemaVersion: 1, split: 'train', pages: [
+        {...page('a'), group: 'template-a'},
+        {...page('b', false), group: 'template-a'}
+    ]};
+    const development = {schemaVersion: 1, split: 'development', pages: [
+        {...page('c'), group: 'template-b'}
+    ]};
+    const report = evaluateGroupedSplits({schemaVersion: 1, splits: [train, development]}, {
+        train: [{id: 'a', roots: ['banner']}, {id: 'b', roots: []}],
+        development: [{id: 'c', roots: []}]
+    });
+    assert.equal(report.splitCount, 2);
+    assert.equal(report.pages, 3);
+    assert.equal(report.groups, 2);
+    assert.equal(report.splits.train.detection.f1, 1);
+    assert.equal(report.splits.development.detection.falseNegatives, 1);
+
+    assert.throws(() => evaluateGroupedSplits([train, {
+        schemaVersion: 1, split: 'test', pages: [{...page('d'), group: 'template-a'}]
+    }], {
+        train: [{id: 'a', roots: []}, {id: 'b', roots: []}],
+        test: [{id: 'd', roots: []}]
+    }), /appears in both train and test/);
+    assert.throws(() => evaluateGroupedSplits([train, {...train}], {
+        train: [{id: 'a', roots: []}, {id: 'b', roots: []}]
+    }), /Duplicate split/);
+    assert.throws(() => evaluateGroupedSplits([development], {}), /Missing predictions/);
 });
 
 test('accepts reviewed consent labels and skips unresolved pages', () => {
@@ -115,6 +161,7 @@ test('accepts reviewed consent labels and skips unresolved pages', () => {
     ]);
     assert.equal(report.pages, 2);
     assert.equal(report.detection.truePositives, 1);
+    assert.equal(report.exactRootAccuracy, 0);
     assert.equal(report.trueNegatives, 1);
     assert.deepEqual(reviewQueueFromLabels(labels, '2026-09-07T00:00:00Z'), {
         schema_version: 1,
