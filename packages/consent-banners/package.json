@@ -1,0 +1,27 @@
+{
+  "name": "@smelt-oss/consent-banners",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Consent-banner detection, pre-trained. The wedge product (IDEA.md 2.5): detect only, no clicking. Contents when built: dist/model.smelt.json, dist/rules.js, MODEL.md, one-call detect wrapper.",
+  "sideEffects": false,
+  "exports": {
+    "./rules": "./rules.mjs"
+  },
+  "files": [
+    "rules.mjs"
+  ],
+  "scripts": {
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@smelt-oss/runtime": "0.0.0"
+  },
+  "devDependencies": {
+    "@smelt-oss/capture": "0.0.0",
+    "linkedom": "^0.18.4"
+  }
+}

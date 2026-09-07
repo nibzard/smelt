@@ -357,7 +357,7 @@
       "id": "T012",
       "title": "Create the consent rules seed",
       "priority": 1,
-      "status": "todo",
+      "status": "done",
       "details": "Add the first human-auditable rules file for consent-banner candidates and features.",
       "steps": [
         "Create rules for banner text, role, position, size, visibility, controls, and known hard negatives.",
@@ -371,6 +371,8 @@
       ],
       "files": [
         "packages/consent-banners/package.json",
+        "packages/consent-banners/rules.mjs",
+        "packages/consent-banners/test/rules.test.mjs",
         "tasks/consent-banners/program.md"
       ],
       "depends_on": [
@@ -379,7 +381,7 @@
         "T010"
       ],
       "created_at": "2026-09-07T21:13:21Z",
-      "updated_at": "2026-09-07T21:13:21Z"
+      "updated_at": "2026-09-07T22:26:31Z"
     },
     {
       "id": "T013",
