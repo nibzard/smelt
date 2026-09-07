@@ -1,0 +1,1 @@
+T012 added the first consent-banner rule seed. The rule scores cover banner text, ARIA role, fixed or sticky placement, size, visibility, controls, and hard negatives from the task spec. Tests run the rules over frozen capture snapshots so later training code can trust the vector shape.
