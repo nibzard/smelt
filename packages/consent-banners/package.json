@@ -6,11 +6,15 @@
   "description": "Consent-banner detection, pre-trained. The wedge product (IDEA.md 2.5): detect only, no clicking. Contents when built: dist/model.smelt.json, dist/rules.js, MODEL.md, one-call detect wrapper.",
   "sideEffects": false,
   "exports": {
+    ".": "./index.mjs",
     "./rules": "./rules.mjs",
     "./model": "./model.mjs",
+    "./model.smelt.json": "./model.smelt.json",
     "./train": "./train.mjs"
   },
   "files": [
+    "index.mjs",
+    "model.smelt.json",
     "model.mjs",
     "rules.mjs",
     "schemas/model.schema.json",
@@ -25,11 +29,11 @@
     "node": ">=20"
   },
   "dependencies": {
-    "@smelt-oss/runtime": "0.0.0"
+    "@smelt-oss/runtime": "0.0.0",
+    "linkedom": "^0.18.4"
   },
   "devDependencies": {
     "@smelt-oss/capture": "0.0.0",
-    "@smelt-oss/pilot": "0.0.0",
-    "linkedom": "^0.18.4"
+    "@smelt-oss/pilot": "0.0.0"
   }
 }

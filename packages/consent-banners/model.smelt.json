@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "abi": "smelt-model-v1",
+  "modelVersion": "0.0.0-seed",
+  "task": "consent-banners",
+  "trainedAt": "2026-09-07T23:59:00Z",
+  "corpus": {
+    "id": "synthetic-consent-seed",
+    "revision": "T016"
+  },
+  "rulesHash": "sha256-5493acb9dd0c865f1a2775f3a97ac453b93250fc04b80c8608555130fa012287",
+  "featureNames": [
+    "candidate",
+    "banner-text",
+    "role",
+    "position",
+    "size",
+    "visibility",
+    "controls",
+    "hard-negative"
+  ],
+  "calibration": {
+    "method": "seed-threshold",
+    "threshold": 0.5,
+    "score": "probability"
+  },
+  "forest": {
+    "encoding": "base64",
+    "byteOrder": "little-endian",
+    "alignmentBytes": 4,
+    "nodeLayout": [
+      "featureIndex:u8",
+      "threshold:f16",
+      "left:u16",
+      "right:u16",
+      "leafValue:f32"
+    ],
+    "leafFeatureIndex": 255,
+    "packed": "U01GMQEACQAAAAAAB/8F/wH/Bv//AAC8AAAAAAAAAAAAAAAAAAAAAAEA//8DAP//BQD//wcA/////wIA//8EAP//BgD//wgA/////wAAAAAAAMDAAAAAAAAAwMAAAAAAAACAwAAAAAAAAEDAAADAQA=="
+  }
+}
