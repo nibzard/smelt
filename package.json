@@ -1,0 +1,23 @@
+{
+  "name": "smelt-monorepo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node scripts/check.mjs",
+    "test": "npm run test --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present",
+    "size": "npm run size --workspace @smelt-oss/runtime && npm run size --workspace @smelt-oss/consent-banners",
+    "verify": "npm run check && npm test && npm run build && npm run size",
+    "pilot:demo": "node packages/pilot/cli.mjs examples/pilot/labels.json examples/pilot/predictions.json",
+    "quickstart": "node packages/cli/smelt.mjs quickstart"
+  },
+  "workspaces": [
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0"
+  }
+}
