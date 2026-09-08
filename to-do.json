@@ -1029,7 +1029,7 @@
       "id": "T033",
       "title": "Build the opt-in quickstart completion flow",
       "priority": 3,
-      "status": "todo",
+      "status": "done",
       "details": "Add a quickstart path that runs without telemetry and offers a pre-filled issue plus an ADOPTERS.md pull request invitation.",
       "steps": [
         "Create the quickstart command or documentation path.",
@@ -1043,6 +1043,10 @@
         "adoption"
       ],
       "files": [
+        "packages/cli/quickstart.mjs",
+        "packages/cli/smelt.mjs",
+        "packages/cli/test/quickstart.test.mjs",
+        "packages/cli/README.md",
         "README.md",
         "ADOPTERS.md",
         "CONTRIBUTING.md"
@@ -1051,7 +1055,14 @@
         "T028"
       ],
       "created_at": "2026-09-07T21:13:21Z",
-      "updated_at": "2026-09-07T21:13:21Z"
+      "updated_at": "2026-09-08T05:58:02Z",
+      "notes": [
+        "Shipped smelt quickstart (IDEA.md 4.3, Appendix E decision 8): detect() on a bundled sample page, honest status of the synthetic-seed model, the measured provisioning numbers (about 113 s cold, 40 ms warm), then the opt-in signals. Exit 0 when the sample detects; 1 on a miss (regression canary) or a degraded run, which prints its own message and never counts as a detection miss.",
+        "Completion signals: a pre-filled GitHub issue link whose title carries the [quickstart] marker plus an outcome word (completed, failed, not run), so title search counts runs and the completed subset is a lower bound on completions; and an ADOPTERS.md pull request invitation. The entry format lives in the root ADOPTERS.md with an example. Nothing is sent: a forbidden-token test scans quickstart.mjs and smelt.mjs for network primitives (dynamic import stays allowed for lazy local loads).",
+        "The printed links target github.com/smelt-oss/smelt, which goes live when T031 registers the org; until then they 404. Recorded rather than hidden because the handles are fixed by decision 0002 and nothing is published yet.",
+        "An adversarial review (17 agents, 8 confirmed of 13) drove the final shape: degraded runs rendered honestly, the CLI version (not the detector literal) in the transcript and issue title, argument rejection for quickstart, exit-path tests, the widened no-network scan, a lazy quickstart import so Node 20.0-20.9 still runs --version and crawl, and engines.node >=20.10 for the packages whose code uses JSON import attributes (verified on Node 20.9.0 and 20.20.2).",
+        "Root docs (README.md quickstart section, ADOPTERS.md format, CONTRIBUTING.md adoption-signals section, root package.json quickstart script) are edited in the working tree and stay untracked per the repository convention."
+      ]
     },
     {
       "id": "T034",

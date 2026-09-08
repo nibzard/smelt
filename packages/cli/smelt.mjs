@@ -33,6 +33,7 @@ function usage() {
     console.error('Usage: smelt <command> [args]');
     console.error('');
     console.error('Commands:');
+    console.error('  quickstart                Run the local detection demo.');
     console.error('  crawl <config> [--steel]  Capture pages; --steel routes to the Steel cloud.');
     console.error('  train <manifest> <out>    Run the consent trainer.');
     console.error('  loop <manifest> <log>     Run the bounded rules agent loop.');
@@ -99,7 +100,27 @@ function runTest() {
     return 0;
 }
 
-function main(argv) {
+// smelt quickstart: run detection on the bundled sample page and print
+// the opt-in completion signals. Nothing is sent over the network. The
+// quickstart module loads lazily: it imports the detector package, whose
+// JSON import attributes need Node >= 20.10, and the launcher itself must
+// start on every Node the engines range allows.
+export async function runQuickstart(cliVersion, makeReport) {
+    try {
+        const {quickstartReport, quickstartText} = await import('./quickstart.mjs');
+        const run = makeReport ?? (() => quickstartReport({version: cliVersion}));
+        const report = await run();
+        console.log(quickstartText(report));
+        // Exit 0 only when the sample detects; a miss is a regression
+        // canary and a degraded run never reached a verdict.
+        return report.sample.found === true ? 0 : 1;
+    } catch (error) {
+        console.error(`Quickstart failed: ${error.message}`);
+        return 1;
+    }
+}
+
+async function main(argv) {
     if (argv.length === 0) {
         usage();
         return 1;
@@ -114,6 +135,15 @@ function main(argv) {
     }
     const commandIndex = argv.findIndex(arg => !arg.startsWith('--'));
     const command = commandIndex === -1 ? undefined : argv[commandIndex];
+    if (command === 'quickstart') {
+        const extra = argv.filter((arg, i) => i !== commandIndex && arg !== '--no-python');
+        if (extra.length > 0) {
+            console.error('quickstart takes no arguments.');
+            usage();
+            return 1;
+        }
+        return runQuickstart(version);
+    }
     if (command === 'test') return runTest();
     if (!COMMANDS.has(command)) {
         console.error(`Unknown command: ${command ?? '(none)'}`);
@@ -147,5 +177,12 @@ function invokedDirectly() {
 }
 
 if (invokedDirectly()) {
-    process.exitCode = main(process.argv.slice(2));
+    main(process.argv.slice(2)).then(
+        code => {
+            process.exitCode = code;
+        },
+        error => {
+            console.error(error);
+            process.exitCode = 1;
+        });
 }

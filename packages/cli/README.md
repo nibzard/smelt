@@ -1,22 +1,45 @@
 # @smelt-oss/cli
 
-The `smelt` command surface: a thin Node launcher (IDEA.md 3.5.2). It
-provisions a uv-managed Python factory environment on first use, then
-dispatches each command to the workspace tool that implements it.
+The `smelt` command surface: a thin Node launcher (IDEA.md 3.5.2). It runs
+the opt-in quickstart, provisions a uv-managed Python factory environment
+on first use, then dispatches each command to the workspace tool that
+implements it.
 
 ## Commands
 
 ```text
-smelt crawl <config> [--steel]   Capture pages; --steel routes to Steel cloud.
-smelt train <manifest> <out>     Run the consent trainer.
-smelt loop <manifest> <log>      Run the bounded rules agent loop.
-smelt test                       Run the size and export gates.
-smelt bench <args>               Run the browser latency benchmark.
-smelt export <args>              Build the npm dist.
-smelt --version                  Print the CLI version.
+smelt quickstart                Run the local detection demo.
+smelt crawl <config> [--steel]  Capture pages; --steel routes to Steel cloud.
+smelt train <manifest> <out>    Run the consent trainer.
+smelt loop <manifest> <log>     Run the bounded rules agent loop.
+smelt test                      Run the size and export gates.
+smelt bench <args>              Run the browser latency benchmark.
+smelt export <args>             Build the npm dist.
+smelt --version                 Print the CLI version.
 ```
 
 Pass `--no-python` to skip provisioning and use the system Python.
+
+## smelt quickstart
+
+The quickstart runs detection on a bundled sample page and prints the
+result, the honest status of the bundled model, and the next commands. It
+exits 0 when the sample page detects, and 1 on a miss or a degraded run,
+so a rules or model regression shows up the moment someone runs it. A
+degraded run (for example, a broken install) prints its own message and
+never reports a detection miss.
+
+The quickstart sends nothing. The privacy stance (IDEA.md 4.3, Appendix E
+decision 8) forbids CLI telemetry: the only completion signals are text
+the user may copy:
+
+- A pre-filled GitHub issue link with a `[quickstart]` title marker and
+  an outcome word: `completed`, `failed`, or `not run`. Counting the
+  completed subset yields a lower bound on completions.
+- An invitation to add an entry to `ADOPTERS.md` by pull request.
+
+A test scans `quickstart.mjs` and `smelt.mjs` for network calls, so the
+no-telemetry promise is enforced in code, not in prose.
 
 ## The Python factory
 
