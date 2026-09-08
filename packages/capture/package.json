@@ -12,12 +12,14 @@
     ".": "./index.mjs",
     "./replay": "./replay.mjs",
     "./steel": "./steel.mjs",
+    "./session": "./session.mjs",
     "./local": "./local.mjs",
     "./snapshot.schema.json": "./schemas/snapshot.schema.json",
     "./features.schema.json": "./schemas/features.schema.json"
   },
   "bin": {
     "smelt-steel-capture": "./steel-cli.mjs",
+    "smelt-steel-crawl": "./session-cli.mjs",
     "smelt-local-capture": "./local-cli.mjs"
   },
   "files": [
@@ -25,12 +27,14 @@
     "replay.mjs",
     "crawl.mjs",
     "steel.mjs",
+    "session.mjs",
     "local.mjs",
     "schemas/",
     "fixtures/"
   ],
   "scripts": {
     "steel:capture": "node steel-cli.mjs",
+    "steel:crawl": "node session-cli.mjs",
     "local:capture": "node local-cli.mjs",
     "local:fixture-crawl": "node local-cli.mjs fixtures/crawl.json",
     "test": "node --test"

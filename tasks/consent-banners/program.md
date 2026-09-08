@@ -36,6 +36,27 @@ and report their count. Capture delayed banners at declared observation times.
 Keep related domains, templates, and captures from one session in one split.
 Collect positive and negative pages from both European and US locations.
 
+## Pilot corpus
+
+The pilot corpus comes from dedicated Steel crawls only (decision 0003
+rule 3). Authorized session samples stay private evaluation inputs. The
+crawl recipes live in `crawls/` beside this file. Each recipe names one
+page per domain, a group for related domains, and an expected class.
+Expectations are hints for balance reporting, not labels.
+
+EU captures egress through a Steel residential proxy in Germany. US
+captures egress from a Steel datacenter browser in `iad`. The capture
+metadata records the egress location of every page. Captures, session
+cost reports, split manifests, label files, and statistics stay under
+`corpus/` and never enter the repository.
+
+Run `node packages/pilot/prepare-corpus-cli.mjs` from the repository root.
+It assigns each group to exactly one of `train`, `development`, and
+`test`. It writes provisional labels marked `unresolved` and queues every
+capture for human review. A label counts only after a person records the
+acceptable roots. Until then, no split may feed training or scoring, and
+the frozen test set stays out of agent-loop inputs (IDEA.md 3.2.4).
+
 ## Threshold policy
 
 Compare hand-written rules, linear and tree models, and agent-improved rules

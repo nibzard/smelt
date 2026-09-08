@@ -21,6 +21,7 @@ import {
     requireString,
     writeCapture
 } from './crawl.mjs';
+import {normalizeSessionConfig} from './session.mjs';
 
 export async function loadSteelCaptureConfig(configPath) {
     const config = JSON.parse(await readFile(configPath, 'utf8'));
@@ -30,6 +31,11 @@ export async function loadSteelCaptureConfig(configPath) {
     }
     const pages = config.pages.map((page, index) => normalizePage(page, index));
     assertUniquePageIds(pages);
+    const session = normalizeSessionConfig(config.session ?? null);
+    if (!session && !(config.browser?.wsEndpoint ?? process.env.STEEL_BROWSER_WS_ENDPOINT)) {
+        throw new TypeError(
+            'Set config.browser.wsEndpoint, STEEL_BROWSER_WS_ENDPOINT, or config.session.');
+    }
     return {
         outDir: requireString(config.outDir ?? 'corpus/captures', 'config.outDir'),
         browser: normalizeBrowser(config.browser ?? {}),
@@ -41,6 +47,7 @@ export async function loadSteelCaptureConfig(configPath) {
         egressLocation: optionalString(config.egressLocation, 'config.egressLocation'),
         storageState: normalizeStorageState(config.storageState, 'config.storageState'),
         singleFileScriptPath: config.singleFileScriptPath ?? null,
+        session,
         pages
     };
 }
@@ -78,30 +85,58 @@ async function connectBrowser(config, playwright) {
     return playwright.firefox.connect(config.browser.wsEndpoint);
 }
 
+// Returns an array of captures. With continueOnError, returns
+// {captures, failures} instead and keeps going after a page fails.
 export async function runSteelCapture(config, options = {}) {
     const playwright = options.playwright ?? await import('playwright');
     const browser = await connectBrowser(config, playwright);
+    const continueOnError = options.continueOnError === true;
     const captures = [];
-    let page;
+    const failures = [];
 
     try {
-        const context = browser.contexts?.()[0] ?? await browser.newContext({
-            userAgent: DEFAULT_USER_AGENT,
-            viewport: config.viewport,
-            storageState: config.storageState ?? undefined
-        });
-        page = await context.newPage();
         for (const target of config.pages) {
-            const capture = await capturePage(page, target, config, {...options, backend: 'steel'});
-            const paths = await writeCapture(config.outDir, target.id, capture);
-            captures.push({id: target.id, url: target.url, paths});
+            let context = null;
+            let ownsContext = false;
+            try {
+                if (options.isolatedContexts) {
+                    // A fresh context per page keeps third-party consent
+                    // cookies from leaking between captures.
+                    context = await browser.newContext({
+                        userAgent: DEFAULT_USER_AGENT,
+                        viewport: config.viewport,
+                        storageState: config.storageState ?? undefined
+                    });
+                    ownsContext = true;
+                } else {
+                    context = browser.contexts?.()[0] ?? await browser.newContext({
+                        userAgent: DEFAULT_USER_AGENT,
+                        viewport: config.viewport,
+                        storageState: config.storageState ?? undefined
+                    });
+                }
+                const page = await context.newPage();
+                try {
+                    const capture = await capturePage(page, target, config,
+                        {...options, backend: 'steel'});
+                    const paths = await writeCapture(config.outDir, target.id, capture);
+                    captures.push({id: target.id, url: target.url, paths});
+                } finally {
+                    await page.close();
+                }
+            } catch (error) {
+                if (!continueOnError) throw error;
+                failures.push({id: target.id, url: target.url,
+                    error: String(error?.message ?? error)});
+            } finally {
+                if (ownsContext) await context?.close?.();
+            }
         }
     } finally {
-        await page?.close();
         await browser.close?.();
     }
 
-    return captures;
+    return continueOnError ? {captures, failures} : captures;
 }
 
 export function configUrl(configPath) {

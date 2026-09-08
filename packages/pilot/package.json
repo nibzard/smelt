@@ -1,0 +1,15 @@
+{
+  "name": "@smelt-oss/pilot",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Offline evaluation for the Smelt Steel pilot.",
+  "exports": "./index.mjs",
+  "scripts": {
+    "prepare:corpus": "node prepare-corpus-cli.mjs",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

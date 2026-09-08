@@ -1,5 +1,1534 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-09-07T00:00:00Z",
-  "items": []
+  "generated_at": "2026-09-08T08:40:03.990Z",
+  "items": [
+    {
+      "capture_id": "01net-com-eu",
+      "group": "01net.com",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/01net-com-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 1125 elements"
+    },
+    {
+      "capture_id": "20minutos-es-eu",
+      "group": "20minutos.es",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/20minutos-es-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 3966 elements; 2 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "abc-es-eu",
+      "group": "abc.es",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/abc-es-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 1973 elements; 2 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "abcnews-go-com-us",
+      "group": "go.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/abcnews-go-com-us.snapshot.json",
+      "notes": "expected mixed; location us-iad-datacenter; 3406 elements; 4 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "absolut-com-eu",
+      "group": "absolut.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/absolut-com-eu.snapshot.json",
+      "notes": "expected none; location eu-de-residential; 666 elements; 1 inaccessible frame(s); age-gate hard negative"
+    },
+    {
+      "capture_id": "adidas-com-us",
+      "group": "adidas.com",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/adidas-com-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 25 elements"
+    },
+    {
+      "capture_id": "aftonbladet-se-eu",
+      "group": "aftonbladet.se",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/aftonbladet-se-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 1872 elements; 2 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "amazon-com-us",
+      "group": "amazon",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/amazon-com-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 1960 elements; 1 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "amazon-de-eu",
+      "group": "amazon",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/amazon-de-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 1811 elements; 1 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "angular-dev-us",
+      "group": "angular.dev",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/angular-dev-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 462 elements"
+    },
+    {
+      "capture_id": "ansa-it-eu",
+      "group": "ansa.it",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/ansa-it-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 6002 elements; 2 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "aol-com-us",
+      "group": "aol.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/aol-com-us.snapshot.json",
+      "notes": "expected mixed; location us-iad-datacenter; 3971 elements; 7 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "apnews-com-us",
+      "group": "apnews.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/apnews-com-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 9144 elements; 40 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "apple-com-eu",
+      "group": "apple.com",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/apple-com-eu.snapshot.json",
+      "notes": "expected none; location eu-de-residential; 1914 elements"
+    },
+    {
+      "capture_id": "apple-com-us",
+      "group": "apple.com",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/apple-com-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 1890 elements"
+    },
+    {
+      "capture_id": "archive-org-eu",
+      "group": "archive.org",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/archive-org-eu.snapshot.json",
+      "notes": "expected none; location eu-de-residential; 63 elements"
+    },
+    {
+      "capture_id": "arstechnica-com-us",
+      "group": "arstechnica.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/arstechnica-com-us.snapshot.json",
+      "notes": "expected mixed; location us-iad-datacenter; 2539 elements; 1 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "as-com-eu",
+      "group": "as.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/as-com-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 3791 elements; 3 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "axios-com-us",
+      "group": "axios.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/axios-com-us.snapshot.json",
+      "notes": "expected mixed; location us-iad-datacenter; 787 elements; 1 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "bacardi-com-us",
+      "group": "bacardi.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/bacardi-com-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 891 elements; 1 inaccessible frame(s); age-gate hard negative"
+    },
+    {
+      "capture_id": "bbc-co-uk-eu",
+      "group": "bbc.co.uk",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/bbc-co-uk-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 2387 elements; 2 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "bestbuy-com-us",
+      "group": "bestbuy.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/bestbuy-com-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 720 elements; 1 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "bfmtv-com-eu",
+      "group": "bfmtv.com",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/bfmtv-com-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 3518 elements"
+    },
+    {
+      "capture_id": "bing-com-us",
+      "group": "microsoft",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/bing-com-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 563 elements"
+    },
+    {
+      "capture_id": "blender-org-eu",
+      "group": "blender.org",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/blender-org-eu.snapshot.json",
+      "notes": "expected none; location eu-de-residential; 536 elements"
+    },
+    {
+      "capture_id": "bloomberg-com-us",
+      "group": "bloomberg.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/bloomberg-com-us.snapshot.json",
+      "notes": "expected mixed; location us-iad-datacenter; 4357 elements; 5 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "booking-com-eu",
+      "group": "booking.com",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/booking-com-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 4238 elements"
+    },
+    {
+      "capture_id": "bostonglobe-com-us",
+      "group": "bostonglobe.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/bostonglobe-com-us.snapshot.json",
+      "notes": "expected mixed; location us-iad-datacenter; 2431 elements; 1 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "budweiser-com-eu",
+      "group": "budweiser.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/budweiser-com-eu.snapshot.json",
+      "notes": "expected none; location eu-de-residential; 2260 elements; 1 inaccessible frame(s); age-gate hard negative"
+    },
+    {
+      "capture_id": "budweiser-com-us",
+      "group": "budweiser.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/budweiser-com-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 378 elements; 1 inaccessible frame(s); age-gate hard negative"
+    },
+    {
+      "capture_id": "buzzfeed-com-us",
+      "group": "buzzfeed.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/buzzfeed-com-us.snapshot.json",
+      "notes": "expected mixed; location us-iad-datacenter; 3764 elements; 5 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "carlsberg-com-eu",
+      "group": "carlsberg.com",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/carlsberg-com-eu.snapshot.json",
+      "notes": "expected none; location eu-de-residential; 417 elements; age-gate hard negative"
+    },
+    {
+      "capture_id": "cbsnews-com-us",
+      "group": "cbsnews.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/cbsnews-com-us.snapshot.json",
+      "notes": "expected mixed; location us-iad-datacenter; 2701 elements; 3 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "chevrolet-com-us",
+      "group": "chevrolet.com",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/chevrolet-com-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 7 elements"
+    },
+    {
+      "capture_id": "chicagotribune-com-us",
+      "group": "chicagotribune.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/chicagotribune-com-us.snapshot.json",
+      "notes": "expected mixed; location us-iad-datacenter; 2003 elements; 3 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "chip-de-eu",
+      "group": "chip.de",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/chip-de-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 4558 elements; 1 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "cloudflare-com-us",
+      "group": "cloudflare.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/cloudflare-com-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 2949 elements; 3 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "cnet-com-us",
+      "group": "cnet.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/cnet-com-us.snapshot.json",
+      "notes": "expected mixed; location us-iad-datacenter; 2136 elements; 10 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "cnn-com-us",
+      "group": "cnn.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/cnn-com-us.snapshot.json",
+      "notes": "expected mixed; location us-iad-datacenter; 5300 elements; 3 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "computerbase-de-eu",
+      "group": "computerbase.de",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/computerbase-de-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 1760 elements"
+    },
+    {
+      "capture_id": "corriere-it-eu",
+      "group": "corriere.it",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/corriere-it-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 6938 elements; 7 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "dailymail-co-uk-eu",
+      "group": "dailymail.co.uk",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/dailymail-co-uk-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 5789 elements"
+    },
+    {
+      "capture_id": "dallasnews-com-us",
+      "group": "dallasnews.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/dallasnews-com-us.snapshot.json",
+      "notes": "expected mixed; location us-iad-datacenter; 2112 elements; 10 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "dart-dev-eu",
+      "group": "dart.dev",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/dart-dev-eu.snapshot.json",
+      "notes": "expected none; location eu-de-residential; 1082 elements; 1 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "debian-org-eu",
+      "group": "debian.org",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/debian-org-eu.snapshot.json",
+      "notes": "expected none; location eu-de-residential; 267 elements"
+    },
+    {
+      "capture_id": "denverpost-com-us",
+      "group": "denverpost.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/denverpost-com-us.snapshot.json",
+      "notes": "expected mixed; location us-iad-datacenter; 2031 elements; 3 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "derstandard-at-eu",
+      "group": "derstandard.at",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/derstandard-at-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 73 elements; 1 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "developer-mozilla-org-us",
+      "group": "mozilla.org",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/developer-mozilla-org-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 706 elements"
+    },
+    {
+      "capture_id": "digitalocean-com-us",
+      "group": "digitalocean.com",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/digitalocean-com-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 1842 elements"
+    },
+    {
+      "capture_id": "docker-com-us",
+      "group": "docker.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/docker-com-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 1320 elements; 2 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "docs-python-org-us",
+      "group": "python.org",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/docs-python-org-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 474 elements"
+    },
+    {
+      "capture_id": "dr-dk-eu",
+      "group": "dr.dk",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/dr-dk-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 4392 elements; 1 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "duckduckgo-com-us",
+      "group": "duckduckgo.com",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/duckduckgo-com-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 1573 elements"
+    },
+    {
+      "capture_id": "ebay-com-us",
+      "group": "ebay.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/ebay-com-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 1896 elements; 1 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "ebay-de-eu",
+      "group": "ebay.de",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/ebay-de-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 2711 elements; 1 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "elmundo-es-eu",
+      "group": "elmundo.es",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/elmundo-es-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 2768 elements; 2 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "elpais-com-eu",
+      "group": "elpais.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/elpais-com-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 6 elements; 1 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "engadget-com-us",
+      "group": "engadget.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/engadget-com-us.snapshot.json",
+      "notes": "expected mixed; location us-iad-datacenter; 1339 elements; 9 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "etsy-com-us",
+      "group": "etsy.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/etsy-com-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 6 elements; 1 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "faz-net-eu",
+      "group": "faz.net",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/faz-net-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 5374 elements; 3 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "focus-de-eu",
+      "group": "focus.de",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/focus-de-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 5442 elements; 1 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "forbes-com-eu",
+      "group": "forbes.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/forbes-com-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 5092 elements; 3 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "forbes-com-us",
+      "group": "forbes.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/forbes-com-us.snapshot.json",
+      "notes": "expected mixed; location us-iad-datacenter; 5645 elements; 8 inaccessible frame(s); newsletter modal candidate"
+    },
+    {
+      "capture_id": "ford-com-us",
+      "group": "ford.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/ford-com-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 2815 elements; 3 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "foxnews-com-us",
+      "group": "foxnews.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/foxnews-com-us.snapshot.json",
+      "notes": "expected mixed; location us-iad-datacenter; 5117 elements; 6 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "francetvinfo-fr-eu",
+      "group": "francetvinfo.fr",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/francetvinfo-fr-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 5905 elements"
+    },
+    {
+      "capture_id": "gap-com-us",
+      "group": "gap.com",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/gap-com-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 7 elements"
+    },
+    {
+      "capture_id": "gazzetta-it-eu",
+      "group": "gazzetta.it",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/gazzetta-it-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 4605 elements; 4 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "gimp-org-eu",
+      "group": "gimp.org",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/gimp-org-eu.snapshot.json",
+      "notes": "expected none; location eu-de-residential; 299 elements"
+    },
+    {
+      "capture_id": "github-com-eu",
+      "group": "github.com",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/github-com-eu.snapshot.json",
+      "notes": "expected none; location eu-de-residential; 1767 elements"
+    },
+    {
+      "capture_id": "github-com-us",
+      "group": "github.com",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/github-com-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 1767 elements"
+    },
+    {
+      "capture_id": "gitlab-com-us",
+      "group": "gitlab.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/gitlab-com-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 1377 elements; 1 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "gnu-org-eu",
+      "group": "gnu.org",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/gnu-org-eu.snapshot.json",
+      "notes": "expected none; location eu-de-residential; 391 elements"
+    },
+    {
+      "capture_id": "golang-org-us",
+      "group": "go.dev",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/golang-org-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 616 elements"
+    },
+    {
+      "capture_id": "google-com-eu",
+      "group": "google",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/google-com-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 638 elements"
+    },
+    {
+      "capture_id": "google-com-us",
+      "group": "google",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/google-com-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 431 elements"
+    },
+    {
+      "capture_id": "handelsblatt-com-eu",
+      "group": "handelsblatt.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/handelsblatt-com-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 4029 elements; 4 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "heineken-com-eu",
+      "group": "heineken.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/heineken-com-eu.snapshot.json",
+      "notes": "expected none; location eu-de-residential; 1916 elements; 1 inaccessible frame(s); age-gate hard negative"
+    },
+    {
+      "capture_id": "heise-de-eu",
+      "group": "heise.de",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/heise-de-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 4542 elements; 2 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "hilton-com-us",
+      "group": "hilton.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/hilton-com-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 1662 elements; 12 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "hln-be-eu",
+      "group": "hln.be",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/hln-be-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 27 elements"
+    },
+    {
+      "capture_id": "homedepot-com-us",
+      "group": "homedepot.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/homedepot-com-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 2833 elements; 3 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "hotnews-ro-eu",
+      "group": "hotnews.ro",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/hotnews-ro-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 2988 elements"
+    },
+    {
+      "capture_id": "hs-fi-eu",
+      "group": "hs.fi",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/hs-fi-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 3185 elements; 1 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "huffpost-com-us",
+      "group": "huffpost.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/huffpost-com-us.snapshot.json",
+      "notes": "expected mixed; location us-iad-datacenter; 2983 elements; 15 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "idnes-cz-eu",
+      "group": "idnes.cz",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/idnes-cz-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 1869 elements; 10 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "ikea-com-us",
+      "group": "ikea.com",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/ikea-com-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 1428 elements"
+    },
+    {
+      "capture_id": "ilpost-it-eu",
+      "group": "ilpost.it",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/ilpost-it-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 1197 elements; 2 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "independent-co-uk-eu",
+      "group": "independent.co.uk",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/independent-co-uk-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 1897 elements; 1 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "irishtimes-com-eu",
+      "group": "irishtimes.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/irishtimes-com-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 3026 elements; 2 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "journaldunet-com-eu",
+      "group": "journaldunet.com",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/journaldunet-com-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 649 elements"
+    },
+    {
+      "capture_id": "kathimerini-gr-eu",
+      "group": "kathimerini.gr",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/kathimerini-gr-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 3171 elements; 1 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "kernel-org-eu",
+      "group": "kernel.org",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/kernel-org-eu.snapshot.json",
+      "notes": "expected none; location eu-de-residential; 328 elements"
+    },
+    {
+      "capture_id": "kohls-com-us",
+      "group": "kohls.com",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/kohls-com-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 7 elements"
+    },
+    {
+      "capture_id": "kubernetes-io-us",
+      "group": "kubernetes.io",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/kubernetes-io-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 494 elements"
+    },
+    {
+      "capture_id": "latimes-com-us",
+      "group": "latimes.com",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/latimes-com-us.snapshot.json",
+      "notes": "expected mixed; location us-iad-datacenter; 4862 elements"
+    },
+    {
+      "capture_id": "lavanguardia-com-eu",
+      "group": "lavanguardia.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/lavanguardia-com-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 4108 elements; 1 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "lefigaro-fr-eu",
+      "group": "lefigaro.fr",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/lefigaro-fr-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 4128 elements"
+    },
+    {
+      "capture_id": "lemonde-fr-eu",
+      "group": "lemonde.fr",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/lemonde-fr-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 4930 elements; 2 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "liberation-fr-eu",
+      "group": "liberation.fr",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/liberation-fr-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 6 elements; 1 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "linternaute-com-eu",
+      "group": "linternaute.com",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/linternaute-com-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 1335 elements"
+    },
+    {
+      "capture_id": "lowes-com-us",
+      "group": "lowes.com",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/lowes-com-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 10 elements"
+    },
+    {
+      "capture_id": "macys-com-us",
+      "group": "macys.com",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/macys-com-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 29 elements"
+    },
+    {
+      "capture_id": "marriott-com-us",
+      "group": "marriott.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/marriott-com-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 3443 elements; 2 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "mashable-com-us",
+      "group": "mashable.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/mashable-com-us.snapshot.json",
+      "notes": "expected mixed; location us-iad-datacenter; 1378 elements; 14 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "medium-com-eu",
+      "group": "medium.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/medium-com-eu.snapshot.json",
+      "notes": "expected none; location eu-de-residential; 262 elements; 1 inaccessible frame(s); regwall hard negative"
+    },
+    {
+      "capture_id": "medium-com-us",
+      "group": "medium.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/medium-com-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 251 elements; 1 inaccessible frame(s); regwall hard negative"
+    },
+    {
+      "capture_id": "microsoft-com-eu",
+      "group": "microsoft",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/microsoft-com-eu.snapshot.json",
+      "notes": "expected mixed; location eu-de-residential; 734 elements"
+    },
+    {
+      "capture_id": "microsoft-com-us",
+      "group": "microsoft",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/microsoft-com-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 992 elements"
+    },
+    {
+      "capture_id": "millerlite-com-us",
+      "group": "millerlite.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/millerlite-com-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 179 elements; 1 inaccessible frame(s); age-gate hard negative"
+    },
+    {
+      "capture_id": "mozilla-org-eu",
+      "group": "mozilla.org",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/mozilla-org-eu.snapshot.json",
+      "notes": "expected none; location eu-de-residential; 1138 elements"
+    },
+    {
+      "capture_id": "mozilla-org-us",
+      "group": "mozilla.org",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/mozilla-org-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 1138 elements"
+    },
+    {
+      "capture_id": "msn-com-eu",
+      "group": "microsoft",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/msn-com-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 132 elements"
+    },
+    {
+      "capture_id": "msn-com-us",
+      "group": "microsoft",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/msn-com-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 102 elements; 2 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "nbcnews-com-us",
+      "group": "nbcnews.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/nbcnews-com-us.snapshot.json",
+      "notes": "expected mixed; location us-iad-datacenter; 5960 elements; 1 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "newyorker-com-us",
+      "group": "newyorker.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/newyorker-com-us.snapshot.json",
+      "notes": "expected mixed; location us-iad-datacenter; 2404 elements; 1 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "nike-com-us",
+      "group": "nike.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/nike-com-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 3151 elements; 4 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "nodejs-org-eu",
+      "group": "nodejs.org",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/nodejs-org-eu.snapshot.json",
+      "notes": "expected none; location eu-de-residential; 1146 elements"
+    },
+    {
+      "capture_id": "nodejs-org-us",
+      "group": "nodejs.org",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/nodejs-org-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 1146 elements"
+    },
+    {
+      "capture_id": "nordstrom-com-us",
+      "group": "nordstrom.com",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/nordstrom-com-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 17 elements"
+    },
+    {
+      "capture_id": "nos-nl-eu",
+      "group": "nos.nl",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/nos-nl-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 1579 elements; 1 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "npr-org-us",
+      "group": "npr.org",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/npr-org-us.snapshot.json",
+      "notes": "expected mixed; location us-iad-datacenter; 4826 elements; 5 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "ntv-de-eu",
+      "group": "n-tv.de",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/ntv-de-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 4831 elements; 4 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "nu-nl-eu",
+      "group": "nu.nl",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/nu-nl-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 27 elements"
+    },
+    {
+      "capture_id": "numerama-com-eu",
+      "group": "numerama.com",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/numerama-com-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 3372 elements"
+    },
+    {
+      "capture_id": "nypost-com-us",
+      "group": "nypost.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/nypost-com-us.snapshot.json",
+      "notes": "expected mixed; location us-iad-datacenter; 3703 elements; 18 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "nytimes-com-eu",
+      "group": "nytimes.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/nytimes-com-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 7534 elements; 3 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "nytimes-com-us",
+      "group": "nytimes.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/nytimes-com-us.snapshot.json",
+      "notes": "expected mixed; location us-iad-datacenter; 6289 elements; 2 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "onet-pl-eu",
+      "group": "onet.pl",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/onet-pl-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 1507 elements; 2 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "openstreetmap-org-eu",
+      "group": "openstreetmap.org",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/openstreetmap-org-eu.snapshot.json",
+      "notes": "expected none; location eu-de-residential; 505 elements"
+    },
+    {
+      "capture_id": "orf-at-eu",
+      "group": "orf.at",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/orf-at-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 1320 elements; 1 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "pbs-org-us",
+      "group": "pbs.org",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/pbs-org-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 2542 elements"
+    },
+    {
+      "capture_id": "politico-com-us",
+      "group": "politico.com",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/politico-com-us.snapshot.json",
+      "notes": "expected mixed; location us-iad-datacenter; 41 elements"
+    },
+    {
+      "capture_id": "postgresql-org-eu",
+      "group": "postgresql.org",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/postgresql-org-eu.snapshot.json",
+      "notes": "expected none; location eu-de-residential; 358 elements"
+    },
+    {
+      "capture_id": "postgresql-org-us",
+      "group": "postgresql.org",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/postgresql-org-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 358 elements"
+    },
+    {
+      "capture_id": "publico-pt-eu",
+      "group": "publico.pt",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/publico-pt-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 3530 elements; 2 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "python-org-eu",
+      "group": "python.org",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/python-org-eu.snapshot.json",
+      "notes": "expected none; location eu-de-residential; 888 elements"
+    },
+    {
+      "capture_id": "react-dev-us",
+      "group": "react.dev",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/react-dev-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 1830 elements"
+    },
+    {
+      "capture_id": "repubblica-it-eu",
+      "group": "repubblica.it",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/repubblica-it-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 3652 elements; 1 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "rte-ie-eu",
+      "group": "rte.ie",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/rte-ie-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 3042 elements"
+    },
+    {
+      "capture_id": "rtl-nl-eu",
+      "group": "rtl.nl",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/rtl-nl-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 27 elements"
+    },
+    {
+      "capture_id": "rust-lang-org-us",
+      "group": "rust-lang.org",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/rust-lang-org-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 238 elements"
+    },
+    {
+      "capture_id": "seattletimes-com-us",
+      "group": "seattletimes.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/seattletimes-com-us.snapshot.json",
+      "notes": "expected mixed; location us-iad-datacenter; 1755 elements; 1 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "sfchronicle-com-us",
+      "group": "sfchronicle.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/sfchronicle-com-us.snapshot.json",
+      "notes": "expected mixed; location us-iad-datacenter; 2611 elements; 6 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "slate-com-us",
+      "group": "slate.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/slate-com-us.snapshot.json",
+      "notes": "expected mixed; location us-iad-datacenter; 1152 elements; 10 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "southwest-com-us",
+      "group": "southwest.com",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/southwest-com-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 2413 elements"
+    },
+    {
+      "capture_id": "spiegel-de-eu",
+      "group": "spiegel.de",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/spiegel-de-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 8775 elements; 1 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "spotify-com-eu",
+      "group": "spotify.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/spotify-com-eu.snapshot.json",
+      "notes": "expected mixed; location eu-de-residential; 3282 elements; 1 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "spotify-com-us",
+      "group": "spotify.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/spotify-com-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 2914 elements; 1 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "sqlite-org-eu",
+      "group": "sqlite.org",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/sqlite-org-eu.snapshot.json",
+      "notes": "expected none; location eu-de-residential; 195 elements"
+    },
+    {
+      "capture_id": "sqlite-org-us",
+      "group": "sqlite.org",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/sqlite-org-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 195 elements"
+    },
+    {
+      "capture_id": "stackoverflow-com-eu",
+      "group": "stackoverflow.com",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/stackoverflow-com-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 3239 elements"
+    },
+    {
+      "capture_id": "stackoverflow-com-us",
+      "group": "stackoverflow.com",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/stackoverflow-com-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 3219 elements"
+    },
+    {
+      "capture_id": "standaard-be-eu",
+      "group": "standaard.be",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/standaard-be-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 2955 elements"
+    },
+    {
+      "capture_id": "startribune-com-us",
+      "group": "startribune.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/startribune-com-us.snapshot.json",
+      "notes": "expected mixed; location us-iad-datacenter; 7406 elements; 8 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "stern-de-eu",
+      "group": "stern.de",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/stern-de-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 3468 elements; 2 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "stripe-com-us",
+      "group": "stripe.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/stripe-com-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 2766 elements; 2 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "sueddeutsche-de-eu",
+      "group": "sueddeutsche.de",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/sueddeutsche-de-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 9544 elements; 1 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "svt-se-eu",
+      "group": "svt.se",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/svt-se-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 2131 elements; 2 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "tagesschau-de-eu",
+      "group": "tagesschau.de",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/tagesschau-de-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 4408 elements"
+    },
+    {
+      "capture_id": "target-com-us",
+      "group": "target.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/target-com-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 3554 elements; 1 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "techcrunch-com-us",
+      "group": "techcrunch.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/techcrunch-com-us.snapshot.json",
+      "notes": "expected mixed; location us-iad-datacenter; 2014 elements; 1 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "telegraaf-nl-eu",
+      "group": "telegraaf.nl",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/telegraaf-nl-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 2096 elements"
+    },
+    {
+      "capture_id": "theatlantic-com-us",
+      "group": "theatlantic.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/theatlantic-com-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 1458 elements; 3 inaccessible frame(s); regwall hard negative"
+    },
+    {
+      "capture_id": "theguardian-com-eu",
+      "group": "theguardian.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/theguardian-com-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 5110 elements; 1 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "theverge-com-us",
+      "group": "theverge.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/theverge-com-us.snapshot.json",
+      "notes": "expected mixed; location us-iad-datacenter; 5010 elements; 5 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "tiktok-com-eu",
+      "group": "tiktok.com",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/tiktok-com-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 510 elements"
+    },
+    {
+      "capture_id": "tweakers-net-eu",
+      "group": "tweakers.net",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/tweakers-net-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 27 elements"
+    },
+    {
+      "capture_id": "twitch-tv-eu",
+      "group": "twitch.tv",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/twitch-tv-eu.snapshot.json",
+      "notes": "expected mixed; location eu-de-residential; 1511 elements"
+    },
+    {
+      "capture_id": "typescriptlang-org-us",
+      "group": "typescriptlang.org",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/typescriptlang-org-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 1435 elements"
+    },
+    {
+      "capture_id": "usatoday-com-us",
+      "group": "usatoday.com",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/usatoday-com-us.snapshot.json",
+      "notes": "expected mixed; location us-iad-datacenter; 7 elements; newsletter modal candidate"
+    },
+    {
+      "capture_id": "vercel-com-us",
+      "group": "vercel.com",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/vercel-com-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 1021 elements"
+    },
+    {
+      "capture_id": "vox-com-us",
+      "group": "vox.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/vox-com-us.snapshot.json",
+      "notes": "expected mixed; location us-iad-datacenter; 2863 elements; 1 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "vuejs-org-us",
+      "group": "vuejs.org",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/vuejs-org-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 650 elements"
+    },
+    {
+      "capture_id": "walmart-com-us",
+      "group": "walmart.com",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/walmart-com-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 1059 elements"
+    },
+    {
+      "capture_id": "washingtonpost-com-eu",
+      "group": "washingtonpost.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/washingtonpost-com-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 2475 elements; 2 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "washingtonpost-com-us",
+      "group": "washingtonpost.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/washingtonpost-com-us.snapshot.json",
+      "notes": "expected mixed; location us-iad-datacenter; 2661 elements; 2 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "wayfair-com-us",
+      "group": "wayfair.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/wayfair-com-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 4310 elements; 2 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "wikipedia-org-eu",
+      "group": "wikimedia",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/wikipedia-org-eu.snapshot.json",
+      "notes": "expected none; location eu-de-residential; 1108 elements"
+    },
+    {
+      "capture_id": "wikipedia-org-us",
+      "group": "wikimedia",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/wikipedia-org-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 1108 elements"
+    },
+    {
+      "capture_id": "wired-com-us",
+      "group": "wired.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/wired-com-us.snapshot.json",
+      "notes": "expected mixed; location us-iad-datacenter; 2006 elements; 1 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "wired-it-eu",
+      "group": "wired.it",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/wired-it-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 3090 elements"
+    },
+    {
+      "capture_id": "wp-pl-eu",
+      "group": "wp.pl",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/wp-pl-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 2665 elements"
+    },
+    {
+      "capture_id": "wyborcza-pl-eu",
+      "group": "wyborcza.pl",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/wyborcza-pl-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 3916 elements; 4 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "xataka-com-eu",
+      "group": "xataka.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/xataka-com-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 2299 elements; 3 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "yahoo-com-eu",
+      "group": "yahoo.com",
+      "reason": "initial label: no teacher label exists yet",
+      "source": "human_flag",
+      "snapshot_path": "corpus/captures/yahoo-com-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 83 elements"
+    },
+    {
+      "capture_id": "yahoo-com-us",
+      "group": "yahoo.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/yahoo-com-us.snapshot.json",
+      "notes": "expected mixed; location us-iad-datacenter; 2226 elements; 21 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "youtube-com-eu",
+      "group": "youtube.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/youtube-com-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 2491 elements; 1 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "youtube-com-us",
+      "group": "youtube.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/youtube-com-us.snapshot.json",
+      "notes": "expected none; location us-iad-datacenter; 1970 elements; 1 inaccessible frame(s); login-nag hard negative"
+    },
+    {
+      "capture_id": "zdnet-com-us",
+      "group": "zdnet.com",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/zdnet-com-us.snapshot.json",
+      "notes": "expected mixed; location us-iad-datacenter; 1630 elements; 10 inaccessible frame(s)"
+    },
+    {
+      "capture_id": "zeit-de-eu",
+      "group": "zeit.de",
+      "reason": "initial label; capture has inaccessible frames",
+      "source": "frame_inaccessible",
+      "snapshot_path": "corpus/captures/zeit-de-eu.snapshot.json",
+      "notes": "expected banner; location eu-de-residential; 5101 elements; 1 inaccessible frame(s)"
+    }
+  ]
 }

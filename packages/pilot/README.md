@@ -16,6 +16,29 @@ The demo uses synthetic labels and predictions, with deliberate errors. It
 should report detection F1 of one third and page-presence F1 of two thirds.
 These numbers demonstrate scoring behavior. They are not model quality evidence.
 
+## Corpus preparation
+
+`prepare:corpus` turns crawled captures into split manifests, provisional
+labels, review-queue entries, and summary statistics. Run it from the
+repository root, because relative paths resolve against the working
+directory:
+
+```sh
+node packages/pilot/prepare-corpus-cli.mjs \
+  --captures corpus/captures \
+  --sessions corpus/sessions \
+  --queue tasks/consent-banners/review-queue.json
+```
+
+It writes `corpus/manifests/splits.json`, one unresolved label file per
+split under `corpus/manifests/labels/`, and
+`corpus/stats/pilot-corpus-stats.json`. One group of related domains,
+templates, or paired locations always lands in exactly one split, by a
+deterministic group-hash order. Every label stays `unresolved` until human
+review records acceptable roots, and every capture enters the review queue.
+Expected classes in the manifests are recipe hints for balance reporting
+only. The test split must stay out of agent-loop inputs.
+
 ## Steel workflow metric contract
 
 The pilot compares matched Steel task cases with and without Smelt. Measure the
