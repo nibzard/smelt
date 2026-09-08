@@ -162,11 +162,13 @@ from the labels file, so the record cannot rewrite the group that split the
 corpus even when the queue disagrees. Clicks on the control bar, the JSON
 box, and blank page areas never change the selection.
 
-Wrapped inline elements have one known limit. Each element is placed at its
-bounding box. A wrapped inline element, such as a link or span that spans
-several lines, has a box that also covers its neighbors. The topmost box
-takes the click. When a click selects the wrong inline element, select the
-block container around it instead.
+Wrapped inline elements need care. Each element is placed at its bounding
+box. A wrapped inline element, such as a link or span that spans several
+lines, has a box that also covers its neighbors, and the topmost box takes
+a plain click. When the hover tip ends with `+N below (alt+click)`, hold
+**Alt** and click to step through the covered elements, one per click; the
+walk replaces the previous step's pick, so the selection holds one element
+at a time. Release Alt and click again to start over.
 
 Generated pages load nothing remote. The viewer strips every
 loading attribute — iframe and image sources, `srcset`, `poster`, preload

@@ -25,17 +25,25 @@ try {
     // Optional on purpose: CI has no browser.
 }
 
-function snapshot({withIframe = false, nested = false} = {}) {
+function snapshot({withIframe = false, nested = false, overlap = false} = {}) {
     const elements = [
         {id: 'e0', tagName: 'html', textSample: '', attributes: {}, children: ['e1']},
         {id: 'e1', tagName: 'body', textSample: '', attributes: {},
-            children: withIframe ? ['e4'] : nested ? ['e2'] : ['e2', 'e3']},
+            children: withIframe ? ['e4'] : nested || overlap ? ['e2'] : ['e2', 'e3']},
         {id: 'e2', tagName: 'main', textSample: 'Article', attributes: {id: 'content'},
-            children: nested ? ['e3'] : []}
+            children: nested ? ['e3'] : overlap ? ['e5', 'e6'] : []}
     ];
     if (withIframe) {
         elements.push({id: 'e4', tagName: 'iframe', textSample: '',
             attributes: {src: 'https://tracker.example/banner'}, children: []});
+    } else if (overlap) {
+        // The amazon-footer shape: a small link whose box sits under the
+        // much bigger box of a later wrapped inline sibling.
+        elements.push({id: 'e5', tagName: 'a', textSample: 'footer link',
+            attributes: {href: 'https://example.com/more'}, children: []});
+        elements.push({id: 'e6', tagName: 'span',
+            textSample: '© example — wrapped copyright line that spans several rows',
+            attributes: {}, children: []});
     } else {
         elements.push({id: 'e3', tagName: 'div', textSample: 'We use cookies',
             attributes: {id: 'banner'}, children: []});
@@ -44,7 +52,7 @@ function snapshot({withIframe = false, nested = false} = {}) {
         frames: [{id: 'f0', accessible: true}], elements};
 }
 
-function features({withIframe = false, nested = false} = {}) {
+function features({withIframe = false, nested = false, overlap = false} = {}) {
     const rect = (x, y, width, height) => ({
         rect: {x, y, top: y, right: x + width, bottom: y + height, left: x, width, height},
         display: 'block', visibility: 'visible', opacity: 1, position: 'static', zIndex: null
@@ -58,6 +66,13 @@ function features({withIframe = false, nested = false} = {}) {
         elements.push({id: 'e3', layout: {rect: rect(10, 120, 600, 200).rect,
             display: 'block', visibility: 'visible', opacity: 1,
             position: 'absolute', zIndex: 5}});
+    } else if (overlap) {
+        elements.push({id: 'e5', layout: {rect: rect(20, 150, 160, 24).rect,
+            display: 'inline', visibility: 'visible', opacity: 1,
+            position: 'absolute', zIndex: 4}});
+        elements.push({id: 'e6', layout: {rect: rect(10, 140, 640, 220).rect,
+            display: 'inline', visibility: 'visible', opacity: 1,
+            position: 'absolute', zIndex: 6}});
     } else {
         elements.push(withIframe
             ? {id: 'e4', layout: {rect: rect(0, 650, 1200, 250).rect, display: 'block',
@@ -243,6 +258,61 @@ test('browser: nested elements land at their captured viewport rectangle',
                 `y: ${placed.y} vs ${120 + placed.barHeight}`);
             assert.ok(Math.abs(placed.w - 600) < 1, `width: ${placed.w}`);
             assert.ok(Math.abs(placed.h - 200) < 1, `height: ${placed.h}`);
+        } finally {
+            await browser.close();
+            await cleanup();
+        }
+    });
+
+test('browser: alt+click walks past a covering wrapped inline box',
+    {skip: !playwright}, async t => {
+        const {pagePath, cleanup} = await writeViewerPage('overlap-page', {overlap: true});
+        const browser = await launchBrowser(t);
+        if (!browser) return void await cleanup();
+        try {
+            const page = await browser.newPage();
+            await page.goto(`file://${pagePath}`);
+            // A point inside the link's visual box, which the span's
+            // bigger replayed box covers.
+            const point = await page.evaluate(() => {
+                const link = document.querySelector('[data-smelt-replay-id="e5"]');
+                const r = link.getBoundingClientRect();
+                return {x: Math.round(r.x + 20), y: Math.round(r.y + 10)};
+            });
+            const selection = () => page.locator('#smelt-selection').textContent();
+            // mouse.click takes no modifiers option; a held key must go
+            // through the keyboard, the way a person holds it.
+            const altClick = async (x, y) => {
+                await page.keyboard.down('Alt');
+                try {
+                    await page.mouse.click(x, y);
+                } finally {
+                    await page.keyboard.up('Alt');
+                }
+            };
+
+            // The hover tip says more elements sit below the top one.
+            await page.mouse.move(point.x, point.y);
+            const tip = await page.locator('#smelt-hover').textContent();
+            assert.match(tip, /e6 <span>/);
+            assert.match(tip, /\+2 below \(alt\+click\)/);
+
+            // A plain click hits the covering span: the interception the
+            // amazon footer capture showed for real.
+            await page.mouse.click(point.x, point.y);
+            assert.equal(await selection(), ' roots: [e6]');
+
+            // Alt+click selects the covered link and drops the span.
+            await altClick(point.x, point.y);
+            assert.equal(await selection(), ' roots: [e5]');
+
+            // The next alt+click walks to the container below both.
+            await altClick(point.x, point.y);
+            assert.equal(await selection(), ' roots: [e2]');
+
+            const label = await copiedLabel(page);
+            assert.deepEqual(label.acceptable_roots, ['e2']);
+            assert.deepEqual(validateConsentLabels(datasetFor(label)), []);
         } finally {
             await browser.close();
             await cleanup();

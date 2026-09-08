@@ -98,8 +98,10 @@ const OVERLAY = `
 <div id="smelt-bar">
   <strong>__CAPTURE_ID__</strong> · group __GROUP__ · <a href="__URL__" target="_blank" rel="noreferrer">__URL_TEXT__</a><br>
   Click the banner root first, then any extra acceptable roots. Click a
-  selected element again to remove it. If the banner sits inside an iframe,
-  click the dashed blue iframe overlay and add a note.
+  selected element again to remove it. When a wrong box covers the one you
+  mean (the hover tip says "+N below"), hold Alt and click to walk the
+  stack. If the banner sits inside an iframe, click the dashed blue iframe
+  overlay and add a note.
   <label>kind <select id="smelt-kind">
     <option value="unknown">unknown</option>
     <option value="banner">banner</option>
@@ -238,37 +240,91 @@ const OVERLAY = `
           // either: <body> carries a replay marker and wraps the whole page,
           // so clicks on blank areas or the controls would otherwise toggle
           // it into the selection and corrupt the copied label.
-          function markedRoot(event) {
-              var target = event.target;
-              if (!target || !target.closest) return null;
-              if (target.closest('#smelt-bar, #smelt-json')) return null;
-              var element = target.closest('[data-smelt-replay-id]');
-              if (!element) return null;
-              var tag = element.tagName.toLowerCase();
+          function selectable(element) {
+              if (!element || !element.closest) return null;
+              if (element.closest('#smelt-bar, #smelt-json')) return null;
+              var marked = element.closest('[data-smelt-replay-id]');
+              if (!marked) return null;
+              var tag = marked.tagName.toLowerCase();
               if (tag === 'html' || tag === 'body') return null;
-              return element;
+              return marked;
+          }
+
+          // All selectable elements under a point, topmost first. The
+          // replayed DOM places each element at its captured bounding box,
+          // so a wrapped inline element's box covers its neighbors: the
+          // amazon footer capture has a copyright span whose box sits over
+          // a footer link. One hit target is not always the element the
+          // reviewer means, so the click handler can walk this stack.
+          function candidatesAt(x, y) {
+              var stack = document.elementsFromPoint
+                  ? document.elementsFromPoint(x, y) : [];
+              var found = [];
+              for (var i = 0; i < stack.length; i++) {
+                  var marked = selectable(stack[i]);
+                  if (marked && found.indexOf(marked) === -1) found.push(marked);
+              }
+              return found;
+          }
+
+          function markedRoot(event) {
+              return selectable(event.target);
+          }
+
+          // Set or clear one id everywhere it renders: a frame id marks
+          // both the blanked host and its clickable catcher.
+          function setIdSelection(id, on) {
+              var position = selected.indexOf(id);
+              if (on && position === -1) selected.push(id);
+              if (!on && position !== -1) selected.splice(position, 1);
+              var nodes = document.querySelectorAll('[data-smelt-replay-id="' + id + '"]');
+              for (var i = 0; i < nodes.length; i++) {
+                  nodes[i].classList.toggle('smelt-selected', on);
+              }
+              document.getElementById('smelt-selection').textContent =
+                  ' roots: [' + selected.join(', ') + ']';
           }
 
           document.addEventListener('mousemove', function (event) {
-              var target = markedRoot(event);
-              if (!target) { hover.style.display = 'none'; return; }
+              var candidates = candidatesAt(event.clientX, event.clientY);
+              if (candidates.length === 0) { hover.style.display = 'none'; return; }
+              var target = candidates[0];
               hover.style.display = 'block';
               hover.style.left = event.clientX + 12 + 'px';
               hover.style.top = event.clientY + 12 + 'px';
               hover.textContent = target.getAttribute('data-smelt-replay-id')
-                  + ' <' + target.tagName.toLowerCase() + '>';
+                  + ' <' + target.tagName.toLowerCase() + '>'
+                  + (candidates.length > 1
+                      ? ' +' + (candidates.length - 1) + ' below (alt+click)' : '');
           });
 
+          // Alt+click walks down the stack of overlapping boxes, one step
+          // per click, and replaces the previous step's pick: a covered
+          // element stays reachable and the walk cannot stack wrong picks.
+          var lastClick = null;
           document.addEventListener('click', function (event) {
-              var target = markedRoot(event);
+              var candidates = candidatesAt(event.clientX, event.clientY);
+              var target = candidates.length > 0 ? candidates[0] : markedRoot(event);
               if (!target) return;
               event.preventDefault();
-              var id = target.getAttribute('data-smelt-replay-id');
-              var position = selected.indexOf(id);
-              if (position === -1) { selected.push(id); target.classList.add('smelt-selected'); }
-              else { selected.splice(position, 1); target.classList.remove('smelt-selected'); }
-              document.getElementById('smelt-selection').textContent =
-                  ' roots: [' + selected.join(', ') + ']';
+              var same = lastClick !== null
+                  && Math.abs(lastClick.x - event.clientX) <= 3
+                  && Math.abs(lastClick.y - event.clientY) <= 3;
+              if (event.altKey && candidates.length > 1) {
+                  var depth = (same ? lastClick.depth + 1 : 1) % candidates.length;
+                  var pick = candidates[depth];
+                  var pickId = pick.getAttribute('data-smelt-replay-id');
+                  if (same && lastClick.id !== null && lastClick.id !== pickId) {
+                      setIdSelection(lastClick.id, false);
+                  }
+                  setIdSelection(pickId, true);
+                  lastClick = {x: event.clientX, y: event.clientY,
+                      depth: depth, id: pickId};
+              } else {
+                  var id = target.getAttribute('data-smelt-replay-id');
+                  setIdSelection(id, selected.indexOf(id) === -1);
+                  lastClick = {x: event.clientX, y: event.clientY, depth: 0, id: id};
+              }
           });
 
           function frameFor(bannerRoot) {
