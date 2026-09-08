@@ -43,6 +43,18 @@ Writes are atomic. The split label files and the split manifest are staged
 through a temp file and swapped in by rename, and each keeps a `.bak` copy
 of its previous content, because `corpus/` is outside version control.
 
+An existing labels file that is not the document this command writes stops
+the run before anything changes: a wrong shape, a declared split that
+disagrees with its file name, a page record without a string id, or the
+same page id twice inside one file. Fix the file by hand and run
+`labels:doctor`. A record whose `label_status` is neither `reviewed` nor
+`unresolved` is kept, not replaced, so a typo in a hand edit surfaces as a
+schema error that names the file. A capture that was re-crawled under the
+same id after its review refuses the run, because the reviewed label was
+written against different content; re-review the page or remove its
+record. A split that becomes empty has its stale labels file removed, so a
+later run cannot wedge on a duplicate id that no capture explains.
+
 A re-run keeps pasted human labels. A page record with
 `label_status: "reviewed"` survives verbatim. An `unresolved` record
 survives when its `review_notes` no longer start with

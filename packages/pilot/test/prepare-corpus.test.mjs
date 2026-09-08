@@ -273,6 +273,11 @@ test('isHumanTouched separates generated stubs from human work', () => {
     assert.equal(isHumanTouched({label_status: 'unresolved', review_notes: ''}), false);
     assert.equal(isHumanTouched({label_status: 'unresolved'}), false);
     assert.equal(isHumanTouched(null), false);
+    // A status the stub writer never produces is kept: the schema check
+    // at the end of the run names the file instead of the re-run
+    // silently replacing the record with a fresh stub.
+    assert.equal(isHumanTouched({label_status: 'reviwed',
+        review_notes: 'checked by hand'}), true);
 });
 
 test('mergeCorpusLabels preserves human records and reports moves and drops', () => {
@@ -424,6 +429,226 @@ test('a re-run stages every labels file and the manifest and keeps backups', asy
         }
         assert.equal(await readFile(`${splitsPath}.bak`, 'utf8'), manifestBefore);
         await assert.rejects(() => readFile(`${splitsPath}.tmp`), /ENOENT/);
+    } finally {
+        await rm(root, {recursive: true, force: true});
+    }
+});
+
+test('a duplicate page id inside one split file refuses the re-run', async () => {
+    const {root, capturesDir, sessionsDir} = await makeCorpus([
+        {id: 'a-eu', group: 'a.test', expect: 'banner'},
+        {id: 'a-us', group: 'a.test', expect: 'none'},
+        {id: 'b-eu', group: 'b.test', expect: 'none'}
+    ]);
+    const queuePath = path.join(root, 'review-queue.json');
+    await writeFile(queuePath, JSON.stringify({
+        schema_version: 1, generated_at: '2026-09-07T00:00:00Z', items: []
+    }));
+    const labelsDir = path.join(root, 'manifests', 'labels');
+    const options = {capturesDir, sessionsDir, outDir: root, queuePath,
+        labelsSchemaPath, queueSchemaPath};
+    try {
+        await prepareCorpus(options);
+        // The paste accident: a reviewed record above the untouched stub.
+        const file = path.join(labelsDir, 'train.labels.json');
+        const exists = await readFile(file).then(() => true, () => false);
+        const target = exists ? file : path.join(labelsDir, 'development.labels.json');
+        const dataset = JSON.parse(await readFile(target, 'utf8'));
+        dataset.pages.unshift(reviewedPage(dataset.pages[0].id, dataset.pages[0].group));
+        const duplicated = `${JSON.stringify(dataset, null, 2)}\n`;
+        await writeFile(target, duplicated);
+
+        // The run must stop before any write instead of quietly keeping
+        // the last entry — which is the stub — and deleting the record.
+        await assert.rejects(() => prepareCorpus(options), /duplicate page id/);
+        assert.equal(await readFile(target, 'utf8'), duplicated,
+            'the failed run leaves the file untouched');
+    } finally {
+        await rm(root, {recursive: true, force: true});
+    }
+});
+
+test('existing labels files that are not documents refuse the re-run', async () => {
+    const {root, capturesDir, sessionsDir} = await makeCorpus([
+        {id: 'a-eu', group: 'a.test', expect: 'banner'},
+        {id: 'a-us', group: 'a.test', expect: 'none'},
+        {id: 'b-eu', group: 'b.test', expect: 'none'}
+    ]);
+    const queuePath = path.join(root, 'review-queue.json');
+    await writeFile(queuePath, JSON.stringify({
+        schema_version: 1, generated_at: '2026-09-07T00:00:00Z', items: []
+    }));
+    const labelsDir = path.join(root, 'manifests', 'labels');
+    const options = {capturesDir, sessionsDir, outDir: root, queuePath,
+        labelsSchemaPath, queueSchemaPath};
+    const firstSplitWithPages = async () => {
+        for (const split of ['train', 'development', 'test']) {
+            const file = path.join(labelsDir, `${split}.labels.json`);
+            if (await readFile(file).then(() => true, () => false)) return file;
+        }
+        throw new Error('no labels file was written');
+    };
+    try {
+        await prepareCorpus(options);
+        // A valid-JSON wrong shape used to read as zero pages and the
+        // re-run replaced the file with fresh stubs.
+        const arrayFile = await firstSplitWithPages();
+        const original = await readFile(arrayFile, 'utf8');
+        const arrayContent = `${JSON.stringify([{id: 'a-eu'}])}\n`;
+        await writeFile(arrayFile, arrayContent);
+        await assert.rejects(() => prepareCorpus(options),
+            /is not a labels document with a pages array/);
+        assert.equal(await readFile(arrayFile, 'utf8'), arrayContent);
+
+        // Restore a real document, then declare the wrong split in it.
+        await writeFile(arrayFile, original);
+        const splitFile = await firstSplitWithPages();
+        const dataset = JSON.parse(await readFile(splitFile, 'utf8'));
+        dataset.split = 'test';
+        const mismatched = `${JSON.stringify(dataset, null, 2)}\n`;
+        await writeFile(splitFile, mismatched);
+        await assert.rejects(() => prepareCorpus(options), /declares split "test"/);
+        assert.equal(await readFile(splitFile, 'utf8'), mismatched);
+    } finally {
+        await rm(root, {recursive: true, force: true});
+    }
+});
+
+test('an unknown label status is kept and fails the schema check loudly', async () => {
+    const {root, capturesDir, sessionsDir} = await makeCorpus([
+        {id: 'a-eu', group: 'a.test', expect: 'banner'},
+        {id: 'a-us', group: 'a.test', expect: 'none'},
+        {id: 'b-eu', group: 'b.test', expect: 'none'}
+    ]);
+    const queuePath = path.join(root, 'review-queue.json');
+    await writeFile(queuePath, JSON.stringify({
+        schema_version: 1, generated_at: '2026-09-07T00:00:00Z', items: []
+    }));
+    const labelsDir = path.join(root, 'manifests', 'labels');
+    const options = {capturesDir, sessionsDir, outDir: root, queuePath,
+        labelsSchemaPath, queueSchemaPath};
+    try {
+        await prepareCorpus(options);
+        let file;
+        for (const split of ['train', 'development', 'test']) {
+            const candidate = path.join(labelsDir, `${split}.labels.json`);
+            if (await readFile(candidate).then(() => true, () => false)) {
+                file = candidate;
+                break;
+            }
+        }
+        // A hand edit with a typo in the status. The merge keeps the
+        // record, so the schema check names the file instead of the
+        // re-run silently replacing it with a fresh stub.
+        const dataset = JSON.parse(await readFile(file, 'utf8'));
+        dataset.pages[0].label_status = 'reviwed';
+        dataset.pages[0].review_notes = 'checked by hand';
+        await writeFile(file, `${JSON.stringify(dataset, null, 2)}\n`);
+        await assert.rejects(() => prepareCorpus(options),
+            /violates the canonical schema/);
+        const after = JSON.parse(await readFile(file, 'utf8'));
+        assert.equal(after.pages[0].label_status, 'reviwed',
+            'the record survives for repair');
+        assert.equal(after.pages[0].review_notes, 'checked by hand');
+    } finally {
+        await rm(root, {recursive: true, force: true});
+    }
+});
+
+test('a re-crawled capture under a reviewed label refuses the run', async () => {
+    const {root, capturesDir, sessionsDir} = await makeCorpus([
+        {id: 'a-eu', group: 'a.test', expect: 'banner'},
+        {id: 'a-us', group: 'a.test', expect: 'none'},
+        {id: 'b-eu', group: 'b.test', expect: 'none'}
+    ]);
+    const queuePath = path.join(root, 'review-queue.json');
+    await writeFile(queuePath, JSON.stringify({
+        schema_version: 1, generated_at: '2026-09-07T00:00:00Z', items: []
+    }));
+    const labelsDir = path.join(root, 'manifests', 'labels');
+    const options = {capturesDir, sessionsDir, outDir: root, queuePath,
+        labelsSchemaPath, queueSchemaPath};
+    try {
+        await prepareCorpus(options);
+        // Review one page, then let a normal re-run record the review.
+        let file;
+        for (const split of ['train', 'development', 'test']) {
+            const candidate = path.join(labelsDir, `${split}.labels.json`);
+            if (await readFile(candidate).then(() => true, () => false)) {
+                file = candidate;
+                break;
+            }
+        }
+        const dataset = JSON.parse(await readFile(file, 'utf8'));
+        dataset.pages[0] = reviewedPage(dataset.pages[0].id, dataset.pages[0].group);
+        await writeFile(file, `${JSON.stringify(dataset, null, 2)}\n`);
+        const reviewed = await prepareCorpus(options);
+        assert.equal(reviewed.labelMerge.preservedReviewed, 1);
+
+        // The crawl runs again and overwrites the capture under the same
+        // id. The next run must refuse: the label was written against
+        // different content.
+        const metadataPath = path.join(capturesDir, 'a-eu.metadata.json');
+        const metadata = JSON.parse(await readFile(metadataPath, 'utf8'));
+        const reviewedId = dataset.pages[0].id;
+        const reCrawledPath = path.join(capturesDir, `${reviewedId}.metadata.json`);
+        const reCrawled = reviewedId === 'a-eu'
+            ? metadata : JSON.parse(await readFile(reCrawledPath, 'utf8'));
+        reCrawled.capturedAt = '2026-09-08T23:00:00Z';
+        await writeFile(reCrawledPath, JSON.stringify(reCrawled));
+        await assert.rejects(() => prepareCorpus(options),
+            /was re-crawled after its review/);
+    } finally {
+        await rm(root, {recursive: true, force: true});
+    }
+});
+
+test('a split that becomes empty has its stale labels file removed', async () => {
+    const {root, capturesDir, sessionsDir} = await makeCorpus([
+        {id: 'a-eu', group: 'a.test', expect: 'banner'},
+        {id: 'a-us', group: 'a.test', expect: 'none'},
+        {id: 'b-eu', group: 'b.test', expect: 'none'},
+        {id: 'c-eu', group: 'c.test', expect: 'none'},
+        {id: 'd-eu', group: 'd.test', expect: 'none'},
+        {id: 'e-eu', group: 'e.test', expect: 'none'}
+    ]);
+    const queuePath = path.join(root, 'review-queue.json');
+    await writeFile(queuePath, JSON.stringify({
+        schema_version: 1, generated_at: '2026-09-07T00:00:00Z', items: []
+    }));
+    const labelsDir = path.join(root, 'manifests', 'labels');
+    const options = {capturesDir, sessionsDir, outDir: root, queuePath,
+        labelsSchemaPath, queueSchemaPath};
+    const fileFor = split => path.join(labelsDir, `${split}.labels.json`);
+    try {
+        const first = await prepareCorpus(options);
+        const written = ['train', 'development', 'test']
+            .filter(split => first.manifest.splits[split].length > 0);
+        assert.equal(written.length, 3, 'every split starts nonempty');
+        // Review one page outside train for the move check.
+        const moving = first.manifest.splits.development[0].id;
+        const development = JSON.parse(await readFile(fileFor('development'), 'utf8'));
+        const page = development.pages.find(item => item.id === moving);
+        development.pages[development.pages.indexOf(page)] =
+            reviewedPage(page.id, page.group);
+        await writeFile(fileFor('development'),
+            `${JSON.stringify(development, null, 2)}\n`);
+
+        // Every group moves to train: development and test empty out.
+        const second = await prepareCorpus({...options,
+            ratios: {train: 1, development: 0, test: 0}});
+        await assert.rejects(() => readFile(fileFor('development'), 'utf8'), /ENOENT/,
+            'the emptied split file is removed');
+        await assert.rejects(() => readFile(fileFor('test'), 'utf8'), /ENOENT/);
+        const train = JSON.parse(await readFile(fileFor('train'), 'utf8'));
+        const moved = train.pages.find(item => item.id === moving);
+        assert.equal(moved.label_status, 'reviewed',
+            'the reviewed record follows its group');
+        assert.equal(second.labelMerge.preservedReviewed, 1);
+
+        // A later run with the default ratios succeeds instead of
+        // wedging on the stale duplicate.
+        await prepareCorpus(options);
     } finally {
         await rm(root, {recursive: true, force: true});
     }

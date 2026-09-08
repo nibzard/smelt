@@ -9,7 +9,7 @@
 // statistics. It makes no network requests and changes no capture files.
 
 import {createHash} from 'node:crypto';
-import {mkdir, readdir, readFile, writeFile} from 'node:fs/promises';
+import {mkdir, readdir, readFile, unlink, writeFile} from 'node:fs/promises';
 import path from 'node:path';
 
 import {commitStaged, stageWrite} from './atomic-write.mjs';
@@ -136,12 +136,46 @@ export async function readExistingLabels(labelsDir) {
     const existing = {};
     for (const split of SPLITS) {
         existing[split] = new Map();
+        const file = path.join(labelsDir, `${split}.labels.json`);
+        let document;
         try {
-            const document = JSON.parse(
-                await readFile(path.join(labelsDir, `${split}.labels.json`), 'utf8'));
-            for (const page of document.pages ?? []) existing[split].set(page.id, page);
+            document = JSON.parse(await readFile(file, 'utf8'));
         } catch (error) {
             if (error.code !== 'ENOENT') throw error;
+            continue;
+        }
+        // These files are the only record of human work, so anything that
+        // is not the document this command writes is a stop, not a zero:
+        // a wrong shape used to read as "no pages" and the re-run
+        // replaced the file with fresh stubs.
+        if (document === null || typeof document !== 'object'
+                || Array.isArray(document) || !Array.isArray(document.pages)) {
+            throw new Error(`${file} is not a labels document with a pages `
+                + 'array; fix the file by hand and run labels:doctor. '
+                + 'No file was merged or written.');
+        }
+        if (document.split !== split) {
+            throw new Error(`${file} declares split `
+                + `${JSON.stringify(document.split)}, expected ${split}; fix the `
+                + 'file by hand and run labels:doctor. No file was merged '
+                + 'or written.');
+        }
+        for (const [index, page] of document.pages.entries()) {
+            if (page === null || typeof page !== 'object' || Array.isArray(page)
+                    || typeof page.id !== 'string') {
+                throw new Error(`${file} page ${index} is not a record with a `
+                    + 'string id; fix the file by hand and run labels:doctor. '
+                    + 'No file was merged or written.');
+            }
+            if (existing[split].has(page.id)) {
+                // A paste below the stub instead of over it. Keeping the
+                // last entry silently discarded the human record, so the
+                // run stops before any write.
+                throw new Error(`duplicate page id ${page.id} in ${file}; fix `
+                    + 'the duplicated record and run labels:doctor. '
+                    + 'No file was merged or written.');
+            }
+            existing[split].set(page.id, page);
         }
     }
     return existing;
@@ -150,13 +184,19 @@ export async function readExistingLabels(labelsDir) {
 // Human work in the existing label files survives a re-run. A reviewed
 // record is kept verbatim. An unresolved record is kept when its notes no
 // longer start with the generated stub prefix, which means a person wrote
-// something beyond the automatic text.
+// something beyond the automatic text. Any other status cannot come from
+// the stub writer, so it is kept too: the schema check at the end of the
+// run then names the file, and a typo in a hand edit cannot silently
+// delete the record by turning it back into a stub.
 export function isHumanTouched(page) {
-    if (page?.label_status === 'reviewed') return true;
-    if (page?.label_status !== 'unresolved') return false;
-    return typeof page.review_notes === 'string'
-        && page.review_notes.length > 0
-        && !page.review_notes.startsWith(AUTO_STUB_NOTE_PREFIX);
+    if (page === null || typeof page !== 'object') return false;
+    if (page.label_status === 'reviewed') return true;
+    if (page.label_status === 'unresolved') {
+        return typeof page.review_notes === 'string'
+            && page.review_notes.length > 0
+            && !page.review_notes.startsWith(AUTO_STUB_NOTE_PREFIX);
+    }
+    return true;
 }
 
 /**
@@ -280,6 +320,7 @@ export function buildCorpusArtifacts(captures, sessionReports, ratios = SPLIT_RA
             group: capture.group,
             egressLocation: capture.egressLocation,
             expected: capture.expected,
+            capturedAt: capture.capturedAt,
             snapshot: capture.paths.snapshot,
             features: capture.paths.features,
             metadata: capture.paths.metadata
@@ -351,6 +392,48 @@ export async function prepareCorpus(options = {}) {
     const labelsDir = path.join(outDir, 'manifests', 'labels');
     const existing = await readExistingLabels(labelsDir);
     const {labels, report: labelMerge} = mergeCorpusLabels(freshLabels, existing);
+    // A re-crawl overwrites capture files under the same id. A preserved
+    // reviewed label was written against the old content, so the run
+    // refuses instead of silently carrying the label to pages the
+    // reviewer never saw. The previous run's manifest — kept as .bak by
+    // the staged write — supplies the capturedAt the label was reviewed
+    // against; the check starts with the first run that leaves a .bak.
+    let previousManifest = null;
+    try {
+        previousManifest = JSON.parse(await readFile(
+            path.join(outDir, 'manifests', 'splits.json.bak'), 'utf8'));
+    } catch (error) {
+        if (error.code !== 'ENOENT') throw error;
+    }
+    if (previousManifest !== null) {
+        const capturedAtOf = (document) => {
+            const byId = new Map();
+            for (const split of SPLITS) {
+                for (const entry of document.splits?.[split] ?? []) {
+                    if (typeof entry?.id === 'string') byId.set(entry.id, entry.capturedAt);
+                }
+            }
+            return byId;
+        };
+        const before = capturedAtOf(previousManifest);
+        const after = capturedAtOf(manifest);
+        const recrawled = [];
+        for (const split of SPLITS) {
+            for (const page of labels[split]) {
+                if (page.label_status !== 'reviewed') continue;
+                if (before.has(page.id) && before.get(page.id) !== after.get(page.id)) {
+                    recrawled.push(page.id);
+                }
+            }
+        }
+        if (recrawled.length > 0) {
+            throw new Error(`capture ${recrawled[0]} was re-crawled after its review `
+                + '(capturedAt changed); the reviewed label was written against '
+                + 'different content. Re-review the page or remove its record, '
+                + `then run again. Affected: ${recrawled.sort().join(', ')}. `
+                + 'No file was written.');
+        }
+    }
     const statusCounts = countBy(SPLITS.flatMap(split =>
         labels[split].map(page => page.label_status)));
     stats.labelStatus = {
@@ -396,6 +479,18 @@ export async function prepareCorpus(options = {}) {
     await stageWrite(splitsPath, `${JSON.stringify(manifest, null, 2)}\n`);
     for (const file of staged) await commitStaged(file);
     await commitStaged(splitsPath);
+    // A split that emptied holds only records whose captures moved or
+    // disappeared; moved records are preserved in their new split, and
+    // dropped ones are named in the merge report. The stale file
+    // otherwise wedges every later run: readExistingLabels loads it, and
+    // the cross-file duplicate guard aborts before any write.
+    for (const split of SPLITS) {
+        if (labels[split].length > 0) continue;
+        const file = path.join(labelsDir, `${split}.labels.json`);
+        await unlink(file).catch(error => {
+            if (error.code !== 'ENOENT') throw error;
+        });
+    }
     await mkdir(path.join(outDir, 'stats'), {recursive: true});
     await writeFile(path.join(outDir, 'stats', 'pilot-corpus-stats.json'),
         `${JSON.stringify(stats, null, 2)}\n`);
