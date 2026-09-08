@@ -635,19 +635,21 @@ test('a proposals file with no readable records reports zero, not silence', asyn
     }
 });
 
-test('scalar lines count as junk; objects without labels count as batch records', async () => {
+test('scalar lines count as junk; objects that are not records count separately', async () => {
     const capturesDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-split-'));
     const outDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-split-out-'));
     const proposalsPath = resolve(outDir, '..', 'split-causes.jsonl');
     try {
         await writeCapture(capturesDir, 'split-page', 'example.com', 'initial label');
         // The warning buckets must match what each line is: a scalar is
-        // junk from a wrong file format; an object with no labels is the
-        // error-record shape a failed batch writes.
+        // junk from a wrong file format; an object that is not a
+        // proposal record — no labels, or no string capture id — is the
+        // other bucket, with or without a labels field.
         await writeFile(proposalsPath, [
             '42',
             JSON.stringify({capture_id: 'split-page', adapterId: 'fake-teacher',
                 error: 'HTTP 503', failedAt: 'now'}),
+            JSON.stringify({labels: {has_banner: true}}),
             ''
         ].join('\n'));
         const result = await buildReviewViewer({
@@ -658,7 +660,7 @@ test('scalar lines count as junk; objects without labels count as batch records'
         });
 
         assert.deepEqual(result.proposals,
-            {records: 0, unreadableLines: 1, labellessLines: 1, matched: 0});
+            {records: 0, unreadableLines: 1, labellessLines: 2, matched: 0});
     } finally {
         await rm(capturesDir, {recursive: true, force: true});
         await rm(outDir, {recursive: true, force: true});
@@ -711,7 +713,17 @@ test('the CLI warns when a proposals file is unusable', async () => {
         const mixedPath = resolve(capturesDir, 'mixed.jsonl');
         await writeFile(mixedPath, `{"capture_id": "junk-p\n${validRecord()}\n`);
         const mixed = await run(mixedPath);
-        assert.match(mixed.stderr, /skipped 1 unreadable proposals line/);
+        assert.match(mixed.stderr,
+            /skipped 1 line\(s\) .* that hold no valid proposals record/);
+
+        // A scalar line among valid records hits the same skip warning;
+        // the message must not call the readable line unreadable or name
+        // captures that do not exist.
+        const scalarMixedPath = resolve(capturesDir, 'scalar-mixed.jsonl');
+        await writeFile(scalarMixedPath, `42\n${validRecord()}\n`);
+        const scalarMixed = await run(scalarMixedPath);
+        assert.match(scalarMixed.stderr,
+            /skipped 1 line\(s\) .* that hold no valid proposals record/);
 
         // A pretty-printed document holds no readable record at all; the
         // warning names that state, so the build cannot pass for a
@@ -732,7 +744,19 @@ test('the CLI warns when a proposals file is unusable', async () => {
         const failed = await run(failedPath);
         assert.match(failed.stderr, /no readable proposals records/);
         assert.match(failed.stderr,
-            /1 line\(s\) hold objects with no labels, like the error records/);
+            /1 line\(s\) hold objects that are not proposal records, like the error records/);
+
+        // Objects with labels but no string capture id are the same
+        // bucket; the message must stay true for them too.
+        const noIdPath = resolve(capturesDir, 'no-id.jsonl');
+        await writeFile(noIdPath, [
+            JSON.stringify({capture_id: 7, labels: {has_banner: true}}),
+            JSON.stringify({labels: {has_banner: true}})
+        ].join('\n') + '\n');
+        const noId = await run(noIdPath);
+        assert.match(noId.stderr, /no readable proposals records/);
+        assert.match(noId.stderr,
+            /2 line\(s\) hold objects that are not proposal records/);
 
         // Lines that parse to scalars, null, or arrays are junk from a
         // wrong file format, not batch records; calling them the failed

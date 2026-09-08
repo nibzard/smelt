@@ -184,10 +184,10 @@ the label. Review the page first and open the panel when unsure. A torn
 or corrupt line in the proposals file is skipped: the file a crashed and
 resumed batch leaves behind still renders, and the last valid record per
 capture wins. A file that yields no panels produces a warning that names
-the cause — junk lines for a wrong file format, error records for a
-batch that produced no proposals, an empty file, or records that match
-no capture in this queue — so a wrong file cannot pass for a normal
-no-proposal build.
+the cause — junk lines for a wrong file format, objects that are not
+proposal records (the error records a failed batch writes), an empty
+file, or records that match no capture in this queue — so a wrong file
+cannot pass for a normal no-proposal build.
 
 Each page rebuilds the top-frame DOM of the capture and positions every
 element at its captured rectangle, composed through nested ancestors. Hover

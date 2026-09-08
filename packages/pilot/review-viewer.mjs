@@ -522,9 +522,12 @@ function neutralizeRemoteLoads(snapshot) {
 // crash-recovered proposals file is a normal input here. A line that
 // parses to a scalar, null, or an array is junk, the same as an
 // unparseable line: only an object can hold a proposal record. The
-// unreadable and labelless line counts travel back to the caller, so a
-// wrong file format and a batch that produced no proposals are warnings
-// instead of a silent zero-panel build.
+// unreadable count covers every junk line; the labelless count covers
+// objects that are not proposal records — a missing capture id or no
+// labels at all, the error-record shape a failed batch writes. Both
+// counts travel back to the caller, so a wrong file format and a batch
+// that produced no proposals are warnings instead of a silent
+// zero-panel build.
 async function readProposals(proposalsPath) {
     const text = await readFile(proposalsPath, 'utf8');
     const proposals = new Map();
@@ -750,8 +753,8 @@ export async function buildReviewViewer(input) {
         proposals = read.proposals;
         // matched counts queue captures with a panel, so a well-formed
         // file from another queue cannot pass for a normal no-proposal
-        // build. labelless counts parsed lines without a proposal, the
-        // shape a failed batch writes.
+        // build. labellessLines counts objects that are not proposal
+        // records, like the error records a failed batch writes.
         proposalStats = {records: proposals.size, unreadableLines: read.unreadable,
             labellessLines: read.labelless, matched: 0};
     }

@@ -36,10 +36,11 @@ try {
         proposalsPath
     });
     // A proposals file that exists but yields no panels must not look
-    // like a normal no-proposal build. Every warning names the cause:
-    // junk lines for a wrong file format, labelless lines for a batch
-    // that produced no proposals, nothing at all for an empty file, and
-    // zero matched captures for a file from another queue.
+    // like a normal no-proposal build. Every warning names a cause that
+    // is true for every line it counts: junk lines for a wrong file
+    // format, objects that are not proposal records (the error records a
+    // failed batch writes), nothing at all for an empty file, and zero
+    // matched captures for a file from another queue.
     if (result.proposals) {
         if (result.proposals.records === 0) {
             const cause = result.proposals.unreadableLines > 0
@@ -47,8 +48,8 @@ try {
                     + 'JSON record'
                 : result.proposals.labellessLines > 0
                     ? `${result.proposals.labellessLines} line(s) hold objects `
-                        + 'with no labels, like the error records a failed '
-                        + 'batch writes'
+                        + 'that are not proposal records, like the error '
+                        + 'records a failed batch writes'
                     : 'the file holds no records at all';
             console.error(`Warning: no readable proposals records in `
                 + `${proposalsPath}: ${cause}. Every page renders without `
@@ -60,9 +61,9 @@ try {
                 + 'the file probably belongs to another queue.');
         } else if (result.proposals.unreadableLines > 0) {
             console.error(`Warning: skipped ${result.proposals.unreadableLines} `
-                + `unreadable proposals line(s) in ${proposalsPath}. Those `
-                + 'captures render without a panel unless a valid record '
-                + 'appears later in the file.');
+                + `line(s) in ${proposalsPath} that hold no valid proposals `
+                + 'record. A capture whose only record was skipped renders '
+                + 'without a panel.');
         }
     }
     console.log(JSON.stringify({pages: result.pages, index: result.indexPath}));
