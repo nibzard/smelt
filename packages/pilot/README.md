@@ -131,7 +131,9 @@ banner sits inside an iframe, a dashed blue overlay covers each frame host;
 click it to select the frame element, and the label records it under
 `frame.element_id`. The overlay exists because a click inside a frame box
 otherwise lands in the child document. Pages link from `index.html`; open
-them directly from the output directory.
+them directly from the output directory. The index counts reviewed and
+remaining captures and lists pending captures first, so regenerate it after
+every apply session.
 
 ## Steel workflow metric contract
 

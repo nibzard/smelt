@@ -211,6 +211,62 @@ test('prefills notes and group from the labels file, not the queue', async () =>
     }
 });
 
+test('index counts review progress and lists pending captures first', async () => {
+    const capturesDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-idx-'));
+    const outDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-idx-out-'));
+    const labelsDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-idx-labels-'));
+    try {
+        await writeCapture(capturesDir, 'done-eu', 'done.test', 'initial label');
+        await writeCapture(capturesDir, 'open-eu', 'open.test', 'initial label');
+        await writeCapture(capturesDir, 'absent-eu', 'absent.test', 'initial label');
+        const stub = (id, group, status) => ({id, group, label_status: status,
+            has_banner: null, acceptable_roots: [], banner_root: null,
+            banner_kind: null, jurisdiction: null,
+            frame: {state: 'unknown', frame_id: null, element_id: null},
+            evidence: [], confidence: null,
+            review_notes: 'awaiting initial human label'});
+        await writeFile(resolve(labelsDir, 'development.labels.json'), JSON.stringify({
+            schema_version: 1, split: 'development',
+            pages: [stub('done-eu', 'done.test', 'reviewed'),
+                stub('open-eu', 'open.test', 'unresolved')]
+        }));
+
+        await buildReviewViewer({
+            // The reviewed capture sits first in the queue; the index must
+            // still list the two pending captures before it.
+            items: [
+                {capture_id: 'done-eu', group: 'done.test', reason: 'initial label'},
+                {capture_id: 'open-eu', group: 'open.test', reason: 'initial label'},
+                {capture_id: 'absent-eu', group: 'absent.test', reason: 'initial label'}
+            ],
+            capturesDir,
+            outDir,
+            labelsDir
+        });
+
+        const index = await readFile(resolve(outDir, 'index.html'), 'utf8');
+        assert.ok(index.includes('3 captures, 1 reviewed, 2 remaining.'));
+        const openAt = index.indexOf('href="open-eu.html"');
+        const absentAt = index.indexOf('href="absent-eu.html"');
+        const doneAt = index.indexOf('href="done-eu.html"');
+        assert.ok(openAt !== -1 && absentAt !== -1 && doneAt !== -1);
+        assert.ok(openAt < doneAt && absentAt < doneAt, 'pending captures come first');
+        const doneRow = index.slice(doneAt, index.indexOf('</li>', doneAt));
+        assert.ok(doneRow.includes('>reviewed<'));
+        const openRow = index.slice(openAt, index.indexOf('</li>', openAt));
+        assert.ok(openRow.includes('>unresolved<'));
+        // A capture with no labels stub counts as pending but shows no
+        // status it cannot know.
+        const absentRow = index.slice(absentAt, index.indexOf('</li>', absentAt));
+        assert.ok(!absentRow.includes('unresolved'));
+        assert.ok(!absentRow.includes('reviewed'));
+    } finally {
+        await rm(capturesDir, {recursive: true, force: true});
+        await rm(outDir, {recursive: true, force: true});
+        await rm(labelsDir, {recursive: true, force: true});
+    }
+});
+
 test('remote-loading URLs never reach the generated page', async () => {
     const capturesDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-frame-'));
     const outDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-frame-out-'));

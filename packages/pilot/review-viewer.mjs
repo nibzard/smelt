@@ -417,9 +417,24 @@ function viewerPage(item, snapshot, features, metadata, labelStub) {
     return `${html.slice(0, bodyEnd)}${overlay}${html.slice(bodyEnd)}`;
 }
 
-function indexPage(items, outDir) {
-    const rows = items.map(item => `        <li><a href="${escapeHtml(item.capture_id)}.html">${escapeHtml(item.capture_id)}</a>`
-        + ` · ${escapeHtml(item.group ?? '')} · ${escapeHtml(item.reason ?? '')}</li>`).join('\n');
+function indexPage(items, stubs) {
+    const statusOf = item => stubs.get(item.capture_id)?.label_status;
+    // Progress counts and ordering apply only when label stubs were read;
+    // without a labels directory the index stays a plain queue listing.
+    const known = items.some(item => stubs.has(item.capture_id));
+    const pending = items.filter(item => statusOf(item) !== 'reviewed');
+    const reviewed = items.filter(item => statusOf(item) === 'reviewed');
+    const row = item => `        <li><a href="${escapeHtml(item.capture_id)}.html">${escapeHtml(item.capture_id)}</a>`
+        + ` · ${escapeHtml(item.group ?? '')} · ${escapeHtml(item.reason ?? '')}`
+        + (statusOf(item)
+            ? ` · <span class="${statusOf(item) === 'reviewed' ? 'done' : 'open'}">`
+                + `${statusOf(item) === 'reviewed' ? 'reviewed' : 'unresolved'}</span>`
+            : '')
+        + '</li>';
+    const rows = (known ? [...pending, ...reviewed] : items).map(row).join('\n');
+    const intro = known
+        ? `${items.length} captures, ${reviewed.length} reviewed, ${pending.length} remaining.`
+        : `${items.length} captures.`;
     return `<!doctype html>
 <html lang="en">
 <head>
@@ -428,12 +443,14 @@ function indexPage(items, outDir) {
     <style>
         body { font: 14px/1.6 sans-serif; max-width: 60em; margin: 2em auto; }
         li { margin: 2px 0; }
+        .done { color: #080; }
+        .open { color: #a60; }
     </style>
 </head>
 <body>
     <h1>Smelt review queue</h1>
-    <p>${items.length} captures. Open a capture, click the banner root, and copy
-    the label JSON into the labels file.</p>
+    <p>${intro} Open a capture, click the banner root, and copy the label JSON
+    into your records file; labels:apply writes it into the labels files.</p>
     <ol>
 ${rows}
     </ol>
@@ -508,7 +525,7 @@ export async function buildReviewViewer(input) {
         pages++;
     }
     const indexPath = path.join(outDir, 'index.html');
-    await writeFile(indexPath, indexPage(items, outDir));
+    await writeFile(indexPath, indexPage(items, labelStubs));
     return {pages, indexPath};
 }
 
