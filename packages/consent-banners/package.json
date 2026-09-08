@@ -7,6 +7,7 @@
   "sideEffects": false,
   "exports": {
     ".": "./index.mjs",
+    "./detect": "./dist/detect.mjs",
     "./bench": "./bench.mjs",
     "./steel-workflow": "./steel-workflow.mjs",
     "./rules": "./rules.mjs",
@@ -22,6 +23,7 @@
   },
   "files": [
     "README.md",
+    "dist",
     "index.mjs",
     "model.smelt.json",
     "model.mjs",
@@ -38,6 +40,8 @@
   ],
   "scripts": {
     "bench": "node bench-cli.mjs",
+    "build": "node scripts/export.mjs",
+    "export": "node scripts/export.mjs",
     "size": "node scripts/size.mjs",
     "test": "node --test",
     "train": "node train-cli.mjs",

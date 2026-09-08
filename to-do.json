@@ -839,7 +839,7 @@
       "id": "T027",
       "title": "Implement the npm export path",
       "priority": 2,
-      "status": "todo",
+      "status": "done",
       "details": "Export one package with bundled rules, an inlined model copy, the JSON artifact, and integrity metadata.",
       "steps": [
         "Bundle the rules and model into a self-contained ESM file.",
@@ -862,7 +862,15 @@
         "T018"
       ],
       "created_at": "2026-09-07T21:13:21Z",
-      "updated_at": "2026-09-07T21:13:21Z"
+      "updated_at": "2026-09-08T04:00:19.524Z",
+      "notes": [
+        "Added packages/consent-banners/scripts/export.mjs (npm run export, also wired as the package build): it regenerates dist/detect.mjs from index.mjs with the model artifact inlined as base64, copies dist/rules.js (unminified) and dist/model.smelt.json for audit, and writes dist/integrity.json with sha256 values for rules, model, and detect plus the corpus id and revision from the artifact.",
+        "The corpus sha256 is recorded as the artifact corpus id and revision (synthetic-consent-seed, T016); hashing a real corpus waits on the T024 collection.",
+        "Gates in fixed order: artifact parses and its rulesHash matches rules.mjs; anchored template patterns each match exactly one line; staged smoke test imports, detects, self-verifies, and checks the version stamp; esbuild eager gzip budget 51200 bytes enforced through the shared scripts/bundle-size.mjs helper (10,970 bytes today). Artifacts stage inside the output directory and only move in after every gate passes, so a failed export never leaves integrity.json describing files it did not ship.",
+        "An adversarial review workflow confirmed 8 findings; all fixed: staged publication, anchored unique template patterns, JSON-encoded interpolation, a crypto.subtle guard in verifyIntegrity for insecure contexts, output-directory confinement to the repository, and tests for each.",
+        "Verified: 6 export tests plus the full npm run verify (192 tests, 0 failures); npm pack --dry-run shows the four dist files in the tarball.",
+        "MODEL.md, the registry publish flow, and release automation stay open (T026, T029, T032)."
+      ]
     },
     {
       "id": "T028",

@@ -106,3 +106,27 @@ epsilon of 0.005, stops at 40 consecutive discards or `$40` of reported cost,
 and writes an experiment log with the diff, gate results, usage, and verdict
 for every iteration. Nothing touches `rules.mjs` automatically; use
 `--rules-out` to export a winning source for human review.
+
+## npm export path
+
+Build the dist that ships to npm:
+
+```sh
+npm run export --workspace @smelt-oss/consent-banners
+```
+
+The dist contains four files:
+
+- `detect.mjs` — the one-call wrapper, regenerated from `index.mjs` with the
+  model artifact inlined as base64. It exports `detect`, `verifyIntegrity`,
+  and the recorded hashes.
+- `rules.js` — the unminified, human-auditable rules copy.
+- `model.smelt.json` — the canonical JSON artifact, kept for audit.
+- `integrity.json` — sha256 values for the rules, the model, and the wrapper;
+  the corpus id and revision; and the eager gzip size against the budget.
+
+The export refuses to finish when the artifact does not parse, when its
+`rulesHash` does not match `rules.mjs`, when the smoke detection fails, or
+when the eager bundle exceeds the package budget. The output directory must
+stay inside the workspace so the smoke test resolves `@smelt-oss/runtime`.
+`MODEL.md` is not part of the export; it ships with the release corpus.
