@@ -32,6 +32,7 @@
   ],
   "scripts": {
     "bench": "node bench-cli.mjs",
+    "size": "node scripts/size.mjs",
     "test": "node --test",
     "train": "node train-cli.mjs"
   },

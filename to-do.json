@@ -562,8 +562,8 @@
       "id": "T018",
       "title": "Enforce size and line-count gates in CI",
       "priority": 2,
-      "status": "todo",
-      "details": "Keep the runtime and consent package within declared byte and line budgets on Linux and Windows with Node.js 20 and 24.",
+      "status": "done",
+      "details": "Added the consent package size gate. It builds the detect entry with esbuild code splitting and gates the eagerly loaded chunks, engine, rules, and model together, under 51,200 bytes gzipped (IDEA.md 3.4.1). The gate also verifies that the Node-only linkedom fallback stays in a chunk that the entry imports dynamically, and reports that lazy chunk outside the budget. The root size command runs the engine-core gate and the consent gate, so verify and the existing Linux and Windows Node.js 20 and 24 CI matrix enforce both. The runtime line-count gate already existed in check.mjs. Verified three gate outcomes: exit nonzero over budget, exit nonzero when the fallback becomes a static import, exit zero as shipped.",
       "steps": [
         "Extend the existing verify command for the consent package.",
         "Check runtime line count and gzip size.",
@@ -576,16 +576,18 @@
         "runtime"
       ],
       "files": [
+        "README.md",
         "package.json",
-        "scripts/check.mjs",
-        "packages/runtime/scripts/size.mjs",
-        "README.md"
+        "packages/consent-banners/package.json",
+        "packages/consent-banners/scripts/size.mjs",
+        "to-do.json"
       ],
       "depends_on": [
         "T016"
       ],
       "created_at": "2026-09-07T21:13:21Z",
-      "updated_at": "2026-09-07T21:13:21Z"
+      "updated_at": "2026-09-08T00:14:12Z",
+      "blockers": []
     },
     {
       "id": "T019",
