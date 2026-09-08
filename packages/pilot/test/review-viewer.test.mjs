@@ -8,7 +8,7 @@ import {tmpdir} from 'node:os';
 import {resolve} from 'node:path';
 import {test} from 'node:test';
 
-import {buildReviewViewer} from '../review-viewer.mjs';
+import {buildReviewViewer, egressJurisdiction} from '../review-viewer.mjs';
 
 function snapshot() {
     return {
@@ -81,6 +81,17 @@ test('writes one positioned page per capture plus an index', async () => {
         assert.ok(page.includes('"z":2147483647'));
         assert.ok(page.includes('id="smelt-bar"'));
         assert.ok(page.includes('id="smelt-copy"'));
+        // The copy button offers every field a reviewed label must carry,
+        // with a clipboard fallback and the JSON on the page.
+        for (const field of ['smelt-kind', 'smelt-jurisdiction', 'smelt-confidence',
+            'smelt-notes', 'smelt-json']) {
+            assert.ok(page.includes(`id="${field}"`), field);
+        }
+        assert.ok(page.includes('execCommand'));
+        // The label data rides in JSON string literals, so a "<" in any
+        // value cannot close the script element.
+        assert.ok(page.includes('captureId = "example-com-eu";'));
+        assert.ok(page.includes('group = "example.com";'));
         // Metadata appears and stays escaped.
         assert.ok(page.includes('https://example.com/'));
 
@@ -122,5 +133,167 @@ test('rejects duplicate queue captures and missing inputs', async () => {
         }), /ENOENT/);
     } finally {
         await rm(dir, {recursive: true, force: true});
+    }
+});
+
+test('egressJurisdiction maps capture locations to label jurisdictions', () => {
+    assert.equal(egressJurisdiction('eu-de-residential'), 'eea');
+    assert.equal(egressJurisdiction('us-iad-datacenter'), 'us');
+    assert.equal(egressJurisdiction('ap-jp-datacenter'), 'unknown');
+    assert.equal(egressJurisdiction(null), 'unknown');
+});
+
+test('prefills jurisdiction from the recipe, then the egress location', async () => {
+    const capturesDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-jur-'));
+    const outDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-jur-out-'));
+    try {
+        await writeCapture(capturesDir, 'recipe-wins', 'example.com', 'initial label',
+            {egressLocation: 'eu-de-residential',
+                targetMetadata: {expect: 'banner', jurisdiction: 'us'}});
+        await writeCapture(capturesDir, 'egress-fallback', 'example.com', 'initial label',
+            {egressLocation: 'eu-de-residential'});
+        await writeCapture(capturesDir, 'no-metadata', 'example.com', 'initial label');
+        await buildReviewViewer({
+            items: [
+                {capture_id: 'recipe-wins', group: 'example.com'},
+                {capture_id: 'egress-fallback', group: 'example.com'},
+                {capture_id: 'no-metadata', group: 'example.com'}
+            ],
+            capturesDir,
+            outDir
+        });
+
+        const read = async id => (await readFile(resolve(outDir, `${id}.html`), 'utf8'));
+        assert.ok((await read('recipe-wins')).includes('jurisdiction.value = "us";'));
+        assert.ok((await read('egress-fallback')).includes('jurisdiction.value = "eea";'));
+        assert.ok((await read('no-metadata')).includes('jurisdiction.value = "unknown";'));
+    } finally {
+        await rm(capturesDir, {recursive: true, force: true});
+        await rm(outDir, {recursive: true, force: true});
+    }
+});
+
+test('prefills notes and group from the labels file, not the queue', async () => {
+    const capturesDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-stub-'));
+    const outDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-stub-out-'));
+    const labelsDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-stub-labels-'));
+    try {
+        await writeCapture(capturesDir, 'example-com-eu', 'queue-group', 'initial label',
+            {url: 'https://example.com/'});
+        await writeFile(resolve(labelsDir, 'development.labels.json'), JSON.stringify({
+            schema_version: 1,
+            split: 'development',
+            pages: [{id: 'example-com-eu', group: 'labels-group',
+                label_status: 'unresolved', has_banner: null, acceptable_roots: [],
+                banner_root: null, banner_kind: null, jurisdiction: null,
+                frame: {state: 'unknown', frame_id: null, element_id: null},
+                evidence: [], confidence: null,
+                review_notes: 'banner appears after a delay'}]
+        }));
+
+        await buildReviewViewer({
+            items: [{capture_id: 'example-com-eu', group: 'queue-group'}],
+            capturesDir,
+            outDir,
+            labelsDir
+        });
+
+        const page = await readFile(resolve(outDir, 'example-com-eu.html'), 'utf8');
+        assert.ok(page.includes('notes.value = "banner appears after a delay";'));
+        // The labels file owns the group: a queue disagreement must not
+        // leak into the record the reviewer copies.
+        assert.ok(page.includes('group = "labels-group";'));
+        assert.ok(!page.includes('group = "queue-group";'));
+    } finally {
+        await rm(capturesDir, {recursive: true, force: true});
+        await rm(outDir, {recursive: true, force: true});
+        await rm(labelsDir, {recursive: true, force: true});
+    }
+});
+
+test('remote-loading URLs never reach the generated page', async () => {
+    const capturesDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-frame-'));
+    const outDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-frame-out-'));
+    try {
+        const framed = {
+            schemaVersion: 1,
+            rootElementId: 'e0',
+            frames: [{id: 'f0', accessible: true}],
+            elements: [
+                {id: 'e0', tagName: 'html', textSample: '', attributes: {}, children: ['e1']},
+                {id: 'e1', tagName: 'body', textSample: '', attributes: {},
+                    children: ['e4', 'e5', 'e6', 'e7', 'e8']},
+                {id: 'e4', tagName: 'iframe', textSample: '',
+                    attributes: {src: 'https://tracker.example/pixel?id=1',
+                        srcdoc: '<p>we use cookies</p>'}, children: []},
+                {id: 'e5', tagName: 'link', textSample: '',
+                    attributes: {rel: 'stylesheet',
+                        href: 'https://cdn.example/site.css'}, children: []},
+                {id: 'e6', tagName: 'img', textSample: '',
+                    attributes: {src: 'https://cdn.example/logo.png',
+                        srcset: 'https://cdn.example/logo2x.png 2x'}, children: []},
+                {id: 'e7', tagName: 'div', textSample: '',
+                    attributes: {style: 'color: red; background: url(https://cdn.example/bg.png)'},
+                    children: []},
+                {id: 'e8', tagName: 'a', textSample: 'continue reading',
+                    attributes: {href: 'https://example.com/page'}, children: []}
+            ]
+        };
+        await writeFile(resolve(capturesDir, 'framed-page.snapshot.json'),
+            JSON.stringify(framed));
+        await writeFile(resolve(capturesDir, 'framed-page.features.json'),
+            JSON.stringify(features()));
+        await buildReviewViewer({
+            items: [{capture_id: 'framed-page', group: 'example.com'}],
+            capturesDir,
+            outDir
+        });
+        const page = await readFile(resolve(outDir, 'framed-page.html'), 'utf8');
+        assert.ok(!page.includes('tracker.example'));
+        assert.ok(!page.includes('we use cookies'));
+        assert.ok(!page.includes('cdn.example'));
+        // The neutral style survives; only the url() load is removed.
+        assert.ok(page.includes('color: red'));
+        assert.ok(!page.includes('url('));
+        // Anchors keep their href: they load nothing and the overlay
+        // blocks their navigation.
+        assert.ok(page.includes('href="https://example.com/page"'));
+    } finally {
+        await rm(capturesDir, {recursive: true, force: true});
+        await rm(outDir, {recursive: true, force: true});
+    }
+});
+
+test('label values cannot close the overlay script element', async () => {
+    const capturesDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-esc-'));
+    const outDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-esc-out-'));
+    const labelsDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-esc-labels-'));
+    try {
+        await writeCapture(capturesDir, 'hostile-page', 'queue-group', 'initial label');
+        await writeFile(resolve(labelsDir, 'development.labels.json'), JSON.stringify({
+            schema_version: 1,
+            split: 'development',
+            pages: [{id: 'hostile-page', group: '</script><b>x',
+                label_status: 'unresolved', has_banner: null, acceptable_roots: [],
+                banner_root: null, banner_kind: null, jurisdiction: null,
+                frame: {state: 'unknown', frame_id: null, element_id: null},
+                evidence: [], confidence: null, review_notes: '</script>y'}]
+        }));
+        await buildReviewViewer({
+            items: [{capture_id: 'hostile-page', group: 'queue-group'}],
+            capturesDir,
+            outDir,
+            labelsDir
+        });
+        const page = await readFile(resolve(outDir, 'hostile-page.html'), 'utf8');
+        // Every "<" in an interpolated value arrives as a JS escape, so the
+        // overlay script keeps exactly one closing tag: its own.
+        assert.ok(page.includes('group = "\\u003c/script>\\u003cb>x";'));
+        assert.ok(page.includes('notes.value = "\\u003c/script>y";'));
+        assert.equal((page.match(/<\/script>/g) ?? []).length, 1);
+    } finally {
+        await rm(capturesDir, {recursive: true, force: true});
+        await rm(outDir, {recursive: true, force: true});
+        await rm(labelsDir, {recursive: true, force: true});
     }
 });

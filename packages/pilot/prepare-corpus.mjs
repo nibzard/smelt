@@ -129,6 +129,77 @@ function labelStub(capture) {
     };
 }
 
+export const AUTO_STUB_NOTE_PREFIX = 'awaiting initial human label';
+
+export async function readExistingLabels(labelsDir) {
+    const existing = {};
+    for (const split of SPLITS) {
+        existing[split] = new Map();
+        try {
+            const document = JSON.parse(
+                await readFile(path.join(labelsDir, `${split}.labels.json`), 'utf8'));
+            for (const page of document.pages ?? []) existing[split].set(page.id, page);
+        } catch (error) {
+            if (error.code !== 'ENOENT') throw error;
+        }
+    }
+    return existing;
+}
+
+// Human work in the existing label files survives a re-run. A reviewed
+// record is kept verbatim. An unresolved record is kept when its notes no
+// longer start with the generated stub prefix, which means a person wrote
+// something beyond the automatic text.
+export function isHumanTouched(page) {
+    if (page?.label_status === 'reviewed') return true;
+    if (page?.label_status !== 'unresolved') return false;
+    return typeof page.review_notes === 'string'
+        && page.review_notes.length > 0
+        && !page.review_notes.startsWith(AUTO_STUB_NOTE_PREFIX);
+}
+
+/**
+ * Merge fresh stubs with preserved human records.
+ *
+ * @arg freshLabels {object} Fresh stub pages keyed by split.
+ * @arg existing {object} Maps of split to existing page records.
+ * @return {object} {labels, report} with preserved, moved, and dropped ids.
+ */
+export function mergeCorpusLabels(freshLabels, existing) {
+    const byId = new Map();
+    for (const [split, pageMap] of Object.entries(existing)) {
+        for (const [id, page] of pageMap) {
+            if (byId.has(id)) {
+                throw new Error(`duplicate page id ${id} in existing label files`);
+            }
+            byId.set(id, {page, split});
+        }
+    }
+    const labels = {train: [], development: [], test: []};
+    const report = {preservedReviewed: 0, preservedUnresolved: 0, moved: [], dropped: []};
+    const freshIds = new Set(SPLITS.flatMap(split => freshLabels[split].map(page => page.id)));
+    for (const split of SPLITS) {
+        for (const stub of freshLabels[split]) {
+            const record = byId.get(stub.id);
+            if (record && isHumanTouched(record.page)) {
+                labels[split].push(record.page);
+                if (record.page.label_status === 'reviewed') report.preservedReviewed++;
+                else report.preservedUnresolved++;
+                if (record.split !== split) {
+                    report.moved.push({id: stub.id, from: record.split, to: split});
+                }
+            } else {
+                labels[split].push(stub);
+            }
+            byId.delete(stub.id);
+        }
+    }
+    // Anything left has no capture anymore: a capture was removed or
+    // renamed, so the page record has nothing to label.
+    report.dropped = [...byId.keys()].sort();
+    return {labels, report};
+}
+
 export function reviewItems(captures) {
     return captures.map(capture => {
         const inaccessible = capture.frames.filter(frame => frame.accessible === false);
@@ -157,15 +228,26 @@ export function reviewItems(captures) {
 export async function mergeReviewQueue(queuePath, items) {
     const existing = JSON.parse(await readFile(queuePath, 'utf8'));
     const known = new Set(existing.items.map(item => item.capture_id));
+    const fresh = new Map(items.map(item => [item.capture_id, item]));
+    // Queue entries are derived from capture metadata, never hand-edited,
+    // so a re-run refreshes them: the first corpus run left four items
+    // with the group an older capture metadata carried.
+    let updated = 0;
+    const mergedItems = existing.items.map(item => {
+        const next = fresh.get(item.capture_id);
+        if (!next) return item;
+        updated++;
+        return next;
+    });
     const additions = items.filter(item => !known.has(item.capture_id));
     const merged = {
         schema_version: 1,
         generated_at: new Date().toISOString(),
-        items: [...existing.items, ...additions].sort((a, b) =>
+        items: [...mergedItems, ...additions].sort((a, b) =>
             a.capture_id.localeCompare(b.capture_id))
     };
     await writeFile(queuePath, `${JSON.stringify(merged, null, 2)}\n`);
-    return {added: additions.length, total: merged.items.length};
+    return {added: additions.length, updated, total: merged.items.length};
 }
 
 function countBy(values) {
@@ -261,8 +343,20 @@ export async function prepareCorpus(options = {}) {
         ids.add(capture.id);
     }
     const sessionReports = await readSessionReports(sessionsDir);
-    const {manifest, labels, stats} = buildCorpusArtifacts(captures, sessionReports,
-        options.ratios ?? SPLIT_RATIOS);
+    const {manifest, labels: freshLabels, stats} = buildCorpusArtifacts(captures,
+        sessionReports, options.ratios ?? SPLIT_RATIOS);
+
+    // Pastes by the human reviewer live in the existing label files. Keep
+    // them; only pages that still carry the automatic stub text regenerate.
+    const labelsDir = path.join(outDir, 'manifests', 'labels');
+    const existing = await readExistingLabels(labelsDir);
+    const {labels, report: labelMerge} = mergeCorpusLabels(freshLabels, existing);
+    const statusCounts = countBy(SPLITS.flatMap(split =>
+        labels[split].map(page => page.label_status)));
+    stats.labelStatus = {
+        reviewed: statusCounts.reviewed ?? 0,
+        unresolved: statusCounts.unresolved ?? 0
+    };
 
     for (const split of SPLITS) {
         if (labels[split].length === 0) continue;
@@ -281,7 +375,6 @@ export async function prepareCorpus(options = {}) {
     }
 
     const manifestsDir = path.join(outDir, 'manifests');
-    const labelsDir = path.join(manifestsDir, 'labels');
     await mkdir(labelsDir, {recursive: true});
     await writeFile(path.join(manifestsDir, 'splits.json'),
         `${JSON.stringify(manifest, null, 2)}\n`);
@@ -297,5 +390,5 @@ export async function prepareCorpus(options = {}) {
         `${JSON.stringify(stats, null, 2)}\n`);
     const queue = await mergeReviewQueue(queuePath, reviewItems(captures));
 
-    return {manifest, stats, queue};
+    return {manifest, stats, queue, labelMerge};
 }

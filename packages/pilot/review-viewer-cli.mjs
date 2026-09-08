@@ -22,7 +22,8 @@ try {
     const result = await buildReviewViewer({
         items,
         capturesDir: option('captures', 'corpus/captures'),
-        outDir: option('out', 'runs/review-viewer')
+        outDir: option('out', 'runs/review-viewer'),
+        labelsDir: option('labels', 'corpus/manifests/labels')
     });
     console.log(JSON.stringify({pages: result.pages, index: result.indexPath}));
 } catch (error) {

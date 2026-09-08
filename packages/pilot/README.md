@@ -39,26 +39,73 @@ review records acceptable roots, and every capture enters the review queue.
 Expected classes in the manifests are recipe hints for balance reporting
 only. The test split must stay out of agent-loop inputs.
 
+A re-run keeps pasted human labels. A page record with
+`label_status: "reviewed"` survives verbatim. An `unresolved` record
+survives when its `review_notes` no longer start with
+`awaiting initial human label`, which means a person wrote something. The
+command reports how many records it preserved, moved between splits, and
+dropped because their capture disappeared. Review-queue entries are
+derived from capture metadata, so a re-run refreshes them.
+
+## Labels doctor
+
+`labels:doctor` checks the label files against the manifest, the queue, and
+the capture files. Run it after every pasting session:
+
+```sh
+node packages/pilot/labels-doctor.mjs \
+  --labels corpus/manifests/labels \
+  --manifest corpus/manifests/splits.json \
+  --queue tasks/consent-banners/review-queue.json \
+  --captures corpus/captures
+```
+
+It exits nonzero when any check fails. It catches the paste accidents a
+schema check alone misses: a record pasted into the wrong split file, a
+paste below the stub instead of over it, a record for a capture that does
+not exist, a group that disagrees with the manifest or queue, a missing
+capture file, and captures on disk that no manifest knows about.
+
 ## Review viewer
 
 `review:viewer` renders every queued capture as a standalone HTML page for
-the human reviewer:
+the human reviewer. Run it from the repository root, because relative
+paths resolve against the working directory:
 
 ```sh
-npm run review:viewer --workspace @smelt-oss/pilot -- \
+node packages/pilot/review-viewer-cli.mjs \
   --queue tasks/consent-banners/review-queue.json \
   --captures corpus/captures \
+  --labels corpus/manifests/labels \
   --out runs/review-viewer
 ```
 
 Each page rebuilds the top-frame DOM of the capture and positions every
-element at its captured rectangle. Hover an element to see its snapshot ID.
-Click the banner root, then any extra acceptable roots. The **Copy label
-JSON** button puts a reviewed label stub on the clipboard, ready to paste
-into the split label file. If the banner sits inside an iframe, click the
-iframe element and record the situation in the review notes. Pages link
-from `index.html` and fetch nothing; open them directly from the output
-directory.
+element at its captured rectangle, composed through nested ancestors. Hover
+an element to see its snapshot ID. Click the banner root first, then any
+extra acceptable roots; click a selected element again to remove it. Pick
+the banner kind and confidence, adjust the jurisdiction prefill (taken from
+the crawl recipe or the capture egress location), and edit the review notes
+(prefilled from the page's stub). The **Copy label JSON** button produces a
+complete reviewed record — `id`, `group`, `label_status`, `has_banner`,
+`acceptable_roots`, `banner_root`, `banner_kind`, `jurisdiction`, `frame`,
+`evidence`, `confidence`, and `review_notes` — ready to paste over the
+page's stub in the split label file. The record passes
+`validateConsentLabels` as-is; a browser test in
+`test/review-viewer.browser.test.mjs` keeps that contract. The group comes
+from the labels file, so the record cannot rewrite the group that split the
+corpus even when the queue disagrees. Clicks on the control bar, the JSON
+box, and blank page areas never change the selection.
+
+Generated pages load nothing remote. The viewer strips every
+loading attribute — iframe and image sources, `srcset`, `poster`, preload
+and stylesheet `link` targets, meta refresh — before serialization, and
+blanks each frame host to `about:blank` with `sandbox` at runtime. If the
+banner sits inside an iframe, a dashed blue overlay covers each frame host;
+click it to select the frame element, and the label records it under
+`frame.element_id`. The overlay exists because a click inside a frame box
+otherwise lands in the child document. Pages link from `index.html`; open
+them directly from the output directory.
 
 ## Steel workflow metric contract
 

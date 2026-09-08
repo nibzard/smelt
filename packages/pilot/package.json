@@ -8,7 +8,8 @@
   "scripts": {
     "prepare:corpus": "node prepare-corpus-cli.mjs",
     "test": "node --test",
-    "review:viewer": "node review-viewer-cli.mjs"
+    "review:viewer": "node review-viewer-cli.mjs",
+    "labels:doctor": "node labels-doctor.mjs"
   },
   "engines": {
     "node": ">=20"

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-09-08T08:40:03.990Z",
+  "generated_at": "2026-09-08T12:00:46.730Z",
   "items": [
     {
       "capture_id": "01net-com-eu",
@@ -428,7 +428,7 @@
     },
     {
       "capture_id": "ebay-com-us",
-      "group": "ebay.com",
+      "group": "ebay",
       "reason": "initial label; capture has inaccessible frames",
       "source": "frame_inaccessible",
       "snapshot_path": "corpus/captures/ebay-com-us.snapshot.json",
@@ -436,7 +436,7 @@
     },
     {
       "capture_id": "ebay-de-eu",
-      "group": "ebay.de",
+      "group": "ebay",
       "reason": "initial label; capture has inaccessible frames",
       "source": "frame_inaccessible",
       "snapshot_path": "corpus/captures/ebay-de-eu.snapshot.json",
@@ -1444,7 +1444,7 @@
     },
     {
       "capture_id": "wired-com-us",
-      "group": "wired.com",
+      "group": "wired",
       "reason": "initial label; capture has inaccessible frames",
       "source": "frame_inaccessible",
       "snapshot_path": "corpus/captures/wired-com-us.snapshot.json",
@@ -1452,7 +1452,7 @@
     },
     {
       "capture_id": "wired-it-eu",
-      "group": "wired.it",
+      "group": "wired",
       "reason": "initial label: no teacher label exists yet",
       "source": "human_flag",
       "snapshot_path": "corpus/captures/wired-it-eu.snapshot.json",

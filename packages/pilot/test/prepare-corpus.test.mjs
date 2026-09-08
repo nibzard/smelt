@@ -11,6 +11,8 @@ import {test} from 'node:test';
 import {
     assignGroupsToSplits,
     buildCorpusArtifacts,
+    isHumanTouched,
+    mergeCorpusLabels,
     mergeReviewQueue,
     prepareCorpus,
     reviewItems
@@ -156,29 +158,37 @@ test('reviewItems mark inaccessible-frame captures distinctly', () => {
     assert.match(items[1].notes, /1 inaccessible frame\(s\)/);
 });
 
-test('mergeReviewQueue is idempotent', async () => {
+test('mergeReviewQueue refreshes derived fields and keeps unknown items', async () => {
     const dir = await mkdtemp(path.join(tmpdir(), 'smelt-queue-'));
     const queuePath = path.join(dir, 'review-queue.json');
     await writeFile(queuePath, JSON.stringify({
         schema_version: 1,
         generated_at: '2026-09-07T00:00:00Z',
-        items: [{capture_id: 'existing', group: 'x.test',
-            reason: 'kept', source: 'human_flag'}]
+        items: [
+            {capture_id: 'existing', group: 'stale.test',
+                reason: 'kept', source: 'human_flag'},
+            {capture_id: 'retired', group: 'z.test',
+                reason: 'capture was re-taken', source: 'human_flag'}
+        ]
     }));
     const items = [
-        {capture_id: 'existing', group: 'x.test', reason: 'duplicate',
+        {capture_id: 'existing', group: 'fresh.test', reason: 'initial label',
             source: 'human_flag', snapshot_path: 'a'},
         {capture_id: 'fresh', group: 'y.test', reason: 'initial label',
             source: 'human_flag', snapshot_path: 'b'}
     ];
     try {
         const first = await mergeReviewQueue(queuePath, items);
-        assert.deepEqual(first, {added: 1, total: 2});
+        assert.deepEqual(first, {added: 1, updated: 1, total: 3});
         const second = await mergeReviewQueue(queuePath, items);
-        assert.deepEqual(second, {added: 0, total: 2});
+        assert.deepEqual(second, {added: 0, updated: 2, total: 3});
         const queue = JSON.parse(await readFile(queuePath, 'utf8'));
-        assert.equal(queue.items.length, 2);
-        assert.equal(queue.items.find(item => item.capture_id === 'existing').reason, 'kept');
+        const byId = new Map(queue.items.map(item => [item.capture_id, item]));
+        // The queue is derived data: a stale group from an older capture
+        // metadata must not survive a re-run.
+        assert.equal(byId.get('existing').group, 'fresh.test');
+        assert.equal(byId.get('retired').reason, 'capture was re-taken');
+        assert.ok(byId.get('fresh'));
     } finally {
         await rm(dir, {recursive: true, force: true});
     }
@@ -238,6 +248,141 @@ test('prepareCorpus fails on an empty captures directory', async () => {
             capturesDir: root, sessionsDir: root, outDir: root,
             queuePath: path.join(root, 'queue.json')
         }), /no captures found/);
+    } finally {
+        await rm(root, {recursive: true, force: true});
+    }
+});
+
+function reviewedPage(id, group) {
+    return {
+        id, group, label_status: 'reviewed', has_banner: true,
+        acceptable_roots: ['e0'], banner_root: 'e0', banner_kind: 'banner',
+        jurisdiction: 'eea',
+        frame: {state: 'top', frame_id: null, element_id: null},
+        evidence: [{kind: 'geometry', value: 'human review', element_id: 'e0'}],
+        confidence: 1, review_notes: 'checked by hand'
+    };
+}
+
+test('isHumanTouched separates generated stubs from human work', () => {
+    assert.equal(isHumanTouched(reviewedPage('a', 'a.test')), true);
+    assert.equal(isHumanTouched({label_status: 'unresolved',
+        review_notes: 'banner appears after a delay; needs a second look'}), true);
+    assert.equal(isHumanTouched({label_status: 'unresolved',
+        review_notes: 'awaiting initial human label; expected banner'}), false);
+    assert.equal(isHumanTouched({label_status: 'unresolved', review_notes: ''}), false);
+    assert.equal(isHumanTouched({label_status: 'unresolved'}), false);
+    assert.equal(isHumanTouched(null), false);
+});
+
+test('mergeCorpusLabels preserves human records and reports moves and drops', () => {
+    const stub = id => ({id, group: 'a.test', label_status: 'unresolved',
+        has_banner: null, acceptable_roots: [], banner_root: null,
+        banner_kind: null, jurisdiction: null,
+        frame: {state: 'unknown', frame_id: null, element_id: null},
+        evidence: [], confidence: null,
+        review_notes: 'awaiting initial human label; expected banner'});
+    const fresh = {train: [stub('a'), stub('b'), stub('c')],
+        development: [], test: []};
+    const existing = {
+        train: new Map([['a', reviewedPage('a', 'a.test')], ['b', stub('b')]]),
+        // A reviewed record pasted into the wrong split file still belongs
+        // to its capture; the merge moves it back.
+        development: new Map([['c', reviewedPage('c', 'a.test')]]),
+        test: new Map([['gone', reviewedPage('gone', 'z.test')]])
+    };
+    const {labels, report} = mergeCorpusLabels(fresh, existing);
+
+    const trainById = new Map(labels.train.map(page => [page.id, page]));
+    assert.equal(trainById.get('a').label_status, 'reviewed');
+    assert.equal(trainById.get('a').review_notes, 'checked by hand');
+    assert.equal(trainById.get('b').label_status, 'unresolved');
+    assert.equal(trainById.get('c').label_status, 'reviewed');
+    assert.equal(labels.development.length, 0);
+    assert.equal(report.preservedReviewed, 2);
+    assert.equal(report.preservedUnresolved, 0);
+    assert.deepEqual(report.moved, [{id: 'c', from: 'development', to: 'train'}]);
+    assert.deepEqual(report.dropped, ['gone']);
+});
+
+test('mergeCorpusLabels rejects a page id in two existing files', () => {
+    const fresh = {train: [], development: [], test: []};
+    const existing = {
+        train: new Map([['a', reviewedPage('a', 'a.test')]]),
+        development: new Map([['a', reviewedPage('a', 'a.test')]]),
+        test: new Map()
+    };
+    assert.throws(() => mergeCorpusLabels(fresh, existing), /duplicate page id a/);
+});
+
+test('prepareCorpus keeps pasted human labels across a re-run', async () => {
+    const {root, capturesDir, sessionsDir} = await makeCorpus([
+        {id: 'a-eu', group: 'a.test', expect: 'banner'},
+        {id: 'a-us', group: 'a.test', expect: 'none'},
+        {id: 'b-eu', group: 'b.test', expect: 'none'}
+    ]);
+    const queuePath = path.join(root, 'review-queue.json');
+    await writeFile(queuePath, JSON.stringify({
+        schema_version: 1, generated_at: '2026-09-07T00:00:00Z', items: []
+    }));
+    const labelsDir = path.join(root, 'manifests', 'labels');
+    try {
+        const first = await prepareCorpus({
+            capturesDir, sessionsDir, outDir: root, queuePath,
+            labelsSchemaPath, queueSchemaPath
+        });
+        assert.equal(first.labelMerge.preservedReviewed, 0);
+
+        // Simulate the reviewer: one pasted reviewed record, one
+        // unresolved record with a hand-written note, one untouched stub.
+        const files = {};
+        const pages = [];
+        for (const split of ['train', 'development', 'test']) {
+            const file = path.join(labelsDir, `${split}.labels.json`);
+            if (!await readFile(file).then(() => true, () => false)) continue;
+            files[split] = JSON.parse(await readFile(file, 'utf8'));
+            pages.push(...files[split].pages);
+        }
+        const [firstPage, secondPage, thirdPage] = pages;
+        const replacePage = (page, next) => {
+            const dataset = Object.values(files)
+                .find(doc => doc.pages.includes(page));
+            dataset.pages[dataset.pages.indexOf(page)] = next;
+        };
+        replacePage(firstPage, reviewedPage(firstPage.id, firstPage.group));
+        replacePage(secondPage, {...secondPage,
+            review_notes: 'banner appears after a delay; needs a second look'});
+        for (const split of Object.keys(files)) {
+            await writeFile(path.join(labelsDir, `${split}.labels.json`),
+                `${JSON.stringify(files[split], null, 2)}\n`);
+        }
+
+        const second = await prepareCorpus({
+            capturesDir, sessionsDir, outDir: root, queuePath,
+            labelsSchemaPath, queueSchemaPath
+        });
+        assert.equal(second.labelMerge.preservedReviewed, 1);
+        assert.equal(second.labelMerge.preservedUnresolved, 1);
+        assert.equal(second.stats.labelStatus.reviewed, 1);
+        assert.equal(second.stats.labelStatus.unresolved, 2);
+
+        const mergedPages = [];
+        for (const split of ['train', 'development', 'test']) {
+            const file = path.join(labelsDir, `${split}.labels.json`);
+            const exists = await readFile(file).then(() => true, () => false);
+            if (!exists) continue;
+            const dataset = JSON.parse(await readFile(file, 'utf8'));
+            assert.equal(dataset.pages.length,
+                first.manifest.splits[dataset.split].length);
+            mergedPages.push(...dataset.pages);
+        }
+        const byId = new Map(mergedPages.map(page => [page.id, page]));
+        assert.equal(byId.get(firstPage.id).label_status, 'reviewed');
+        assert.equal(byId.get(firstPage.id).review_notes, 'checked by hand');
+        assert.equal(byId.get(secondPage.id).review_notes,
+            'banner appears after a delay; needs a second look');
+        assert.ok(byId.get(thirdPage.id).review_notes
+            .startsWith('awaiting initial human label'));
     } finally {
         await rm(root, {recursive: true, force: true});
     }

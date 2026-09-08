@@ -22,6 +22,8 @@ try {
         groups: result.stats.groups,
         splits: Object.fromEntries(Object.entries(result.stats.splits)
             .map(([split, value]) => [split, value.pages])),
+        labelStatus: result.stats.labelStatus,
+        labelMerge: result.labelMerge,
         reviewQueue: result.queue
     }, null, 2));
 } catch (error) {
