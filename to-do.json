@@ -1215,7 +1215,13 @@
         "T033"
       ],
       "created_at": "2026-09-07T21:13:21Z",
-      "updated_at": "2026-09-07T21:13:21Z"
+      "updated_at": "2026-09-08T19:20:00Z",
+      "blockers": [
+        "Selecting the second detector needs the post-pilot failure slices and adopter requests its first step names. Decision 0004 makes a second task a candidate only after the pilot records enough evidence to split it into a clear detector target, and the 2026-10-16 pilot evidence review (decision 0005) supplies that evidence. No post-pilot failures exist yet (every label is unresolved, no matched workflow run), and no adopter requests can exist before T031 publishes the handles."
+      ],
+      "notes": [
+        "2026-09-08: dependency audit. T023 and T033 are done, so the graph showed this task as the only actionable todo entry. Recording why it is not: decisions 0004 and 0005 gate the selection on pilot evidence, the review is 2026-10-16, and adopter input requires a published project. A selection made now would be speculative and would need to be redone after the review, so the task waits. The consent-banners program.md stays the pattern the second task will follow."
+      ]
     },
     {
       "id": "T038",
