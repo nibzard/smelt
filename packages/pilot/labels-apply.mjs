@@ -56,17 +56,89 @@ async function stageWrite(file, text) {
 /**
  * Parse the contents of a records file.
  *
- * @arg {string} text File contents: a JSON array of records, or an object
- *   with a `pages` array.
+ * The file may hold a JSON array of records, an object with a `pages`
+ * array, or viewer records pasted one after another with no commas and
+ * no wrapping array — the copied record is pretty-printed, so demanding
+ * a hand-assembled array puts every paste accident back into the flow
+ * this command exists to remove. Whitespace separates pasted values.
+ * Anything else fails with the offset, so a torn paste or stray text is
+ * named, never silently skipped.
+ *
+ * @arg {string} text File contents.
  * @returns {Array} The label records.
  */
 export function parseRecords(text) {
-    const parsed = JSON.parse(text);
-    const pages = Array.isArray(parsed) ? parsed : parsed?.pages;
-    requireValue(Array.isArray(pages) && pages.length > 0,
-        'Records file must hold a JSON array of label records '
-            + 'or an object with a pages array.');
-    return pages;
+    const records = [];
+    let index = 0;
+    const skipSpace = () => {
+        while (index < text.length && /\s/.test(text[index])) index += 1;
+    };
+    skipSpace();
+    while (index < text.length) {
+        const opener = text[index];
+        if (opener !== '{' && opener !== '[') {
+            throw new SyntaxError(`Records file has unexpected content at offset `
+                + `${index}: ${JSON.stringify(text.slice(index, index + 20))}. Hold `
+                + 'label records as objects pasted one after another, as a JSON '
+                + 'array, or as an object with a pages array.');
+        }
+        // Scan one balanced value. Strings hide braces, brackets, and
+        // quotes, so track string state and escapes while counting depth.
+        let depth = 0;
+        let inString = false;
+        let escaped = false;
+        let end = -1;
+        for (let i = index; i < text.length; i++) {
+            const char = text[i];
+            if (inString) {
+                if (escaped) escaped = false;
+                else if (char === '\\') escaped = true;
+                else if (char === '"') inString = false;
+                continue;
+            }
+            if (char === '"') {
+                inString = true;
+            } else if (char === '{' || char === '[') {
+                depth += 1;
+            } else if (char === '}' || char === ']') {
+                depth -= 1;
+                if (depth <= 0) {
+                    if (depth < 0) break;
+                    end = i;
+                    break;
+                }
+            }
+        }
+        if (end === -1) {
+            throw new SyntaxError(`Records file holds an unfinished JSON value at `
+                + `offset ${index}: a value opens but never closes, so nothing was `
+                + 'applied. Check the last pasted record.');
+        }
+        let value;
+        try {
+            value = JSON.parse(text.slice(index, end + 1));
+        } catch (error) {
+            throw new SyntaxError(`Records file holds an invalid JSON value at `
+                + `offset ${index}: ${error.message}`);
+        }
+        const pages = Array.isArray(value) ? value : value?.pages;
+        if (Array.isArray(pages)) {
+            records.push(...pages);
+        } else if (value !== null && typeof value === 'object' && !Array.isArray(value)
+            && typeof value.id === 'string') {
+            records.push(value);
+        } else {
+            throw new SyntaxError('Records file holds a value that is neither a '
+                + `label record nor a records array, at offset ${index}. Records `
+                + 'need an id field; batches need a pages array.');
+        }
+        index = end + 1;
+        skipSpace();
+    }
+    requireValue(records.length > 0,
+        'Records file must hold label records: objects pasted one after '
+            + 'another, a JSON array of records, or an object with a pages array.');
+    return records;
 }
 
 // The first schema or semantic problem in the dataset, or null. The same

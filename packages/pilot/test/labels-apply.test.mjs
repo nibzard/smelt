@@ -311,6 +311,68 @@ test('parseRecords accepts arrays and pages objects, and rejects junk', () => {
     assert.throws(() => parseRecords('{oops'), SyntaxError);
 });
 
+test('parseRecords accepts pasted pretty-printed records with no array assembly',
+    () => {
+        const record = reviewedPage('a-eu', 'a.test');
+        // The exact flow the runbook describes: copy a record, paste it,
+        // repeat. No commas, no wrapping brackets — each copied record is
+        // pretty-printed and multi-line, so hand-assembling an array is
+        // where a session's paste accidents used to live.
+        const pasted = [record, reviewedPage('a2-eu', 'a.test')]
+            .map(page => JSON.stringify(page, null, 2)).join('\n');
+        const records = parseRecords(pasted);
+        assert.equal(records.length, 2);
+        assert.equal(records[1].id, 'a2-eu');
+
+        // Compact one-per-line files and mixed shapes parse the same way.
+        const compact = [record, record].map(page => JSON.stringify(page)).join('\n');
+        assert.equal(parseRecords(compact).length, 2);
+        const mixed = `${JSON.stringify(record)}\n`
+            + `{"pages": [${JSON.stringify(record)}]}`;
+        assert.equal(parseRecords(mixed).length, 2);
+    });
+
+test('parseRecords names torn pastes and stray content instead of skipping them',
+    () => {
+        const record = reviewedPage('a-eu', 'a.test');
+        const pretty = JSON.stringify(record, null, 2);
+        // A last record missing its closing brace: the offset must point
+        // at the value that opens but never closes.
+        const torn = `${pretty}\n${pretty.slice(0, 40)}`;
+        assert.throws(() => parseRecords(torn), /unfinished JSON value at offset/);
+        // Stray text between records is surfaced, never silently skipped.
+        assert.throws(() => parseRecords(`${JSON.stringify(record)}\nbreak\n`),
+            /unexpected content at offset .*break/);
+        // Braces inside pasted strings must not end a value early; the
+        // record carries braces and brackets in its notes.
+        const braced = {...record, review_notes: 'has } and [ and " inside'};
+        assert.equal(parseRecords(JSON.stringify(braced, null, 2)).length, 1);
+    });
+
+test('a pasted session file applies and the world stays doctor-clean', async () => {
+    const world = await buildWorld();
+    try {
+        const session = [reviewedPage('a-eu', 'a.test', 'first page'),
+            reviewedPage('a2-eu', 'a.test', 'second page')]
+            .map(page => JSON.stringify(page, null, 2)).join('\n');
+        const {applied, rejected} = await applyLabels({
+            records: parseRecords(session), labelsDir: world.labelsDir,
+            labelsSchemaPath});
+
+        assert.deepEqual(applied, ['a-eu', 'a2-eu']);
+        assert.deepEqual(rejected, []);
+        const {problems, stats} = await checkLabels({
+            labelsDir: world.labelsDir, manifestPath: world.manifestPath,
+            queuePath: world.queuePath, capturesDir: world.capturesDir,
+            labelsSchemaPath
+        });
+        assert.deepEqual(problems, []);
+        assert.equal(stats.reviewed, 2);
+    } finally {
+        await rm(world.root, {recursive: true, force: true});
+    }
+});
+
 test('inputs are required', async () => {
     await assert.rejects(() => applyLabels({records: [], labelsDir: 'x'}),
         /Expected at least one label record/);

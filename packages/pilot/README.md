@@ -78,8 +78,12 @@ node packages/pilot/labels-apply.mjs \
   --labels corpus/manifests/labels
 ```
 
-The records file holds a JSON array of records, or an object with a `pages`
-array. Each record replaces the page stub with the same `id`. A record is
+The records file holds the copied records pasted one after another —
+commas and a wrapping array are optional, because each copied record is
+pretty-printed and hand-assembly is where paste accidents live. A JSON
+array of records and an object with a `pages` array work too. A torn
+paste or stray text fails with the offset instead of skipping content.
+Each record replaces the page stub with the same `id`. A record is
 rejected when no split file holds that id, when its `group` disagrees with
 the labels file, or when the replacement would fail the schema or semantic
 checks. A rejected record leaves its file untouched, and the command exits
@@ -140,7 +144,7 @@ manifest. Each command runs from the repository root.
    (add `--proposals` when a teacher proposals file exists).
 2. Open `runs/review-viewer/index.html`, then walk the queue with the
    prev and next links. Click roots on each page and copy each record
-   into one JSON array file for the session.
+   into one session file, pasting the records one after another.
 3. Apply the session file: `node packages/pilot/labels-apply.mjs
    --records path/to/session.json --labels corpus/manifests/labels`.
 4. Check the result: `node packages/pilot/labels-doctor.mjs`. Fix what
