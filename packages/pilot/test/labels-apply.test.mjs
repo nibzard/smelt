@@ -189,6 +189,45 @@ test('a record that fails the label checks is rejected', async () => {
     }
 });
 
+test('an invalid record does not poison its valid split siblings', async () => {
+    const world = await buildWorld();
+    try {
+        // Both records target train. The per-record trial check must
+        // reject only the broken one; a whole-file-only check would sink
+        // the valid sibling with it.
+        const poisoned = {...reviewedPage('a2-eu', 'a.test'),
+            has_banner: false, banner_root: 'e3'};
+        const {applied, rejected} = await applyLabels({
+            records: [reviewedPage('a-eu', 'a.test'), poisoned],
+            labelsDir: world.labelsDir, labelsSchemaPath});
+
+        assert.deepEqual(applied, ['a-eu']);
+        assert.equal(rejected.length, 1);
+        assert.equal(rejected[0].id, 'a2-eu');
+        assert.match(rejected[0].reason, /^(schema|semantic): /);
+        const train = JSON.parse(await readFile(trainFile(world), 'utf8'));
+        assert.equal(train.pages[0].label_status, 'reviewed');
+        assert.equal(train.pages[1].label_status, 'unresolved');
+    } finally {
+        await rm(world.root, {recursive: true, force: true});
+    }
+});
+
+test('a labels file whose pages field is not an array names the file', async () => {
+    const world = await buildWorld();
+    try {
+        const broken = path.join(world.labelsDir, 'train.labels.json');
+        await writeFile(broken, JSON.stringify({schema_version: 1,
+            split: 'train', pages: {a: 1}}));
+        await assert.rejects(() => applyLabels({
+            records: [reviewedPage('b-eu', 'b.test')],
+            labelsDir: world.labelsDir, labelsSchemaPath}),
+            /train\.labels\.json holds a pages field that is not an array/);
+    } finally {
+        await rm(world.root, {recursive: true, force: true});
+    }
+});
+
 test('records apply across splits in one run', async () => {
     const world = await buildWorld();
     try {

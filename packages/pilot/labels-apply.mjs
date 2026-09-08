@@ -130,7 +130,10 @@ export async function applyLabels(input) {
             throw new Error(`${file} is not valid JSON: ${error.message}`);
         }
         datasets[split] = dataset;
-        for (const [index, page] of (dataset.pages ?? []).entries()) {
+        if (!Array.isArray(dataset.pages)) {
+            throw new Error(`${file} holds a pages field that is not an array.`);
+        }
+        for (const [index, page] of dataset.pages.entries()) {
             if (where.has(page.id)) duplicated.add(page.id);
             else where.set(page.id, {split, index});
         }

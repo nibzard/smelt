@@ -195,12 +195,24 @@ test('a manifest role holding the wrong split file fails fast', () => {
     // The train role points at the development labels file; before the
     // guard, validateDataset(dataset, dataset.split) accepted any split in
     // any role, so the frozen test file would have trained without a word.
+    // The message names the split the file actually declares, so the
+    // operator can see which file landed in which role.
     const swapped = {...train, labels: development.labels};
     assert.throws(() => trainConsentBaselines({schemaVersion: 1,
-        train: swapped, development}), /Expected train labels/);
+        train: swapped, development}),
+        /Expected train labels; this dataset declares "development"\./);
     const swappedDev = {...development, labels: train.labels};
     assert.throws(() => trainConsentBaselines({schemaVersion: 1,
-        train, development: swappedDev}), /Expected development labels/);
+        train, development: swappedDev}),
+        /Expected development labels; this dataset declares "train"\./);
+});
+
+test('a page without a group fails before the disjoint-role check', () => {
+    const train = split('train', [consentPage('a', 'ga')]);
+    delete train.labels.pages[0].group;
+    assert.throws(() => trainConsentBaselines({schemaVersion: 1,
+        train, development: split('development', [consentPage('b', 'gb')])}),
+        /Invalid group: a/);
 });
 
 test('pages shared between train and development fail', () => {

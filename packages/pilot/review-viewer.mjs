@@ -427,8 +427,11 @@ function indexPage(items, stubs, warnings = []) {
     const row = item => `        <li><a href="${escapeHtml(item.capture_id)}.html">${escapeHtml(item.capture_id)}</a>`
         + ` · ${escapeHtml(item.group ?? '')} · ${escapeHtml(item.reason ?? '')}`
         + (statusOf(item)
+            // A status other than the two the schema knows displays as
+            // itself, never as an invented "unresolved".
             ? ` · <span class="${statusOf(item) === 'reviewed' ? 'done' : 'open'}">`
-                + `${statusOf(item) === 'reviewed' ? 'reviewed' : 'unresolved'}</span>`
+                + `${escapeHtml(statusOf(item) === 'reviewed' ? 'reviewed'
+                    : String(statusOf(item)))}</span>`
             : '')
         + '</li>';
     const rows = (known ? [...pending, ...reviewed] : items).map(row).join('\n');

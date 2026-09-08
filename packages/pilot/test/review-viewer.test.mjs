@@ -259,6 +259,42 @@ test('index keeps the first split for a duplicated page id and warns', async () 
     }
 });
 
+test('index shows an unknown label status as itself, never as unresolved', async () => {
+    const capturesDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-status-'));
+    const outDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-status-out-'));
+    const labelsDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-status-labels-'));
+    try {
+        await writeCapture(capturesDir, 'odd-eu', 'odd.test', 'initial label');
+        // A status outside the schema's two values must not be rendered
+        // as an invented "unresolved"; it shows as itself, pending.
+        await writeFile(resolve(labelsDir, 'development.labels.json'), JSON.stringify({
+            schema_version: 1, split: 'development',
+            pages: [{id: 'odd-eu', group: 'odd.test', label_status: 'reviwed',
+                has_banner: null, acceptable_roots: [], banner_root: null,
+                banner_kind: null, jurisdiction: null,
+                frame: {state: 'unknown', frame_id: null, element_id: null},
+                evidence: [], confidence: null, review_notes: 'typo in the file'}]
+        }));
+        await buildReviewViewer({
+            items: [{capture_id: 'odd-eu', group: 'odd.test', reason: 'initial label'}],
+            capturesDir,
+            outDir,
+            labelsDir
+        });
+
+        const index = await readFile(resolve(outDir, 'index.html'), 'utf8');
+        assert.ok(index.includes('1 captures, 0 reviewed, 1 remaining.'));
+        const row = index.slice(index.indexOf('href="odd-eu.html"'),
+            index.indexOf('</li>', index.indexOf('href="odd-eu.html"')));
+        assert.ok(row.includes('>reviwed<'), 'the literal status displays');
+        assert.ok(!row.includes('>unresolved<'), 'no invented status');
+    } finally {
+        await rm(capturesDir, {recursive: true, force: true});
+        await rm(outDir, {recursive: true, force: true});
+        await rm(labelsDir, {recursive: true, force: true});
+    }
+});
+
 test('index warns when a split labels file is unreadable', async () => {
     const capturesDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-torn-'));
     const outDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-torn-out-'));

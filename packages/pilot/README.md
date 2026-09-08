@@ -90,7 +90,9 @@ unless it is identical to the stored record. Pass `--replace` to correct
 your own earlier label. A reviewed page is never demoted back to
 `unresolved`, even with `--replace`; re-open a page by editing the labels
 file by hand. These guards stop a stale records file from an earlier
-session from silently reverting a correction.
+session from silently reverting a correction. An `unresolved` record with
+hand-written `review_notes` may still be applied over a stub, which is how
+you save review progress on a page that needs a second look.
 
 Writes are atomic. Each updated file is written to a sibling temp file
 and renamed into place, and a `.bak` copy of the previous content stays

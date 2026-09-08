@@ -35,15 +35,6 @@ async function readJson(file) {
     return JSON.parse(await readFile(file, 'utf8'));
 }
 
-// Write through a sibling temp file and an atomic rename, so a failure
-// never leaves a half-written output or fresh compact labels beside a
-// stale manifest that references them.
-async function writeFileAtomic(file, text) {
-    const tmp = `${file}.tmp`;
-    await writeFile(tmp, text);
-    await rename(tmp, file);
-}
-
 /**
  * Build a trainer and loop manifest from reviewed corpus labels.
  *
@@ -71,8 +62,29 @@ export async function buildTrainingManifest(input) {
     const seenGroups = new Map();
     for (const split of SPLITS.filter(name => name !== 'test')) {
         const entries = corpusManifest.splits?.[split] ?? [];
+        // Every manifest entry needs an id and capture paths before any
+        // comparison runs, and a capture listed twice would double its
+        // weight in training without failing an agreement check.
+        const seenIds = new Set();
+        for (const entry of entries) {
+            requireValue(typeof entry?.id === 'string' && entry.id.length > 0,
+                `${split} manifest holds an entry without an id.`);
+            requireValue(!seenIds.has(entry.id), `${split} manifest lists capture `
+                + `${entry.id} more than once. Run prepare:corpus again.`);
+            seenIds.add(entry.id);
+            requireValue(typeof entry.snapshot === 'string' && entry.snapshot.length > 0,
+                `${split} manifest entry ${entry.id} has no snapshot path.`);
+            requireValue(typeof entry.features === 'string' && entry.features.length > 0,
+                `${split} manifest entry ${entry.id} has no features path.`);
+        }
         const labelsFile = path.join(labelsDir, `${split}.labels.json`);
-        const dataset = await readJson(labelsFile);
+        let dataset;
+        try {
+            dataset = await readJson(labelsFile);
+        } catch (error) {
+            if (error.code !== 'ENOENT') throw error;
+            throw new Error(`${labelsFile} is missing. Run prepare:corpus first.`);
+        }
         requireValue(dataset?.split === split,
             `${labelsFile} declares split ${dataset?.split}, expected ${split}.`);
         const unresolved = (dataset.pages ?? [])
@@ -136,11 +148,15 @@ export async function buildTrainingManifest(input) {
             + 'would overwrite a compact labels file.');
     const files = [];
     const manifest = {schemaVersion: 1, generatedAt: new Date().toISOString()};
+    // Stage every output before any rename, so a write failure leaves the
+    // whole previous generation intact instead of fresh compact labels
+    // beside a stale manifest. The manifest renames last: until it does,
+    // the old manifest still describes the old compact files.
+    const staged = [];
     for (const split of Object.keys(roles)) {
         const {compact, entries} = roles[split];
         const labelsOut = path.join(outDir, `${split}.labels.json`);
-        await writeFileAtomic(labelsOut, `${JSON.stringify(compact, null, 2)}\n`);
-        files.push(labelsOut);
+        staged.push({file: labelsOut, text: `${JSON.stringify(compact, null, 2)}\n`});
         manifest[split] = {
             labels: path.basename(labelsOut),
             captures: entries.map(entry => ({
@@ -150,8 +166,12 @@ export async function buildTrainingManifest(input) {
             }))
         };
     }
-    await writeFileAtomic(outPath, `${JSON.stringify(manifest, null, 2)}\n`);
-    files.push(outPath);
+    staged.push({file: outPath, text: `${JSON.stringify(manifest, null, 2)}\n`});
+    for (const {file, text} of staged) await writeFile(`${file}.tmp`, text);
+    for (const {file} of staged) {
+        await rename(`${file}.tmp`, file);
+        files.push(file);
+    }
     return {manifest, files};
 }
 

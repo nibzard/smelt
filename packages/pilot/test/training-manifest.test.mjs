@@ -135,6 +135,98 @@ test('labels and manifest captures must agree exactly', async () => {
     }
 });
 
+test('labels holding a page the manifest does not list are refused', async () => {
+    // The other disagreement direction: an extra reviewed page in the
+    // labels file would train on a capture nothing points at.
+    const world = await buildWorld({
+        trainPages: [reviewedPage('a-eu', 'a.test'), reviewedPage('a2-eu', 'a.test')],
+        developmentPages: [reviewedPage('b-eu', 'b.test')]
+    });
+    try {
+        const stale = JSON.parse(await readFile(world.manifestPath, 'utf8'));
+        stale.splits.train = stale.splits.train.filter(entry => entry.id !== 'a2-eu');
+        await writeFile(world.manifestPath, JSON.stringify(stale));
+        await assert.rejects(buildTrainingManifest({
+            manifestPath: world.manifestPath, labelsDir: world.labelsDir,
+            outPath: world.outPath}), /train labels hold pages the manifest does not list: a2-eu/);
+    } finally {
+        await rm(world.root, {recursive: true, force: true});
+    }
+});
+
+test('a split file declaring the wrong split is refused', async () => {
+    const world = await buildWorld({
+        trainPages: [reviewedPage('a-eu', 'a.test')],
+        developmentPages: [reviewedPage('b-eu', 'b.test')]
+    });
+    try {
+        const labelsFile = path.join(world.labelsDir, 'train.labels.json');
+        const dataset = JSON.parse(await readFile(labelsFile, 'utf8'));
+        dataset.split = 'development';
+        await writeFile(labelsFile, JSON.stringify(dataset));
+        await assert.rejects(buildTrainingManifest({
+            manifestPath: world.manifestPath, labelsDir: world.labelsDir,
+            outPath: world.outPath}),
+            /train\.labels\.json declares split development, expected train/);
+    } finally {
+        await rm(world.root, {recursive: true, force: true});
+    }
+});
+
+test('a missing split labels file names the file and the fix', async () => {
+    const world = await buildWorld({
+        trainPages: [reviewedPage('a-eu', 'a.test')],
+        developmentPages: [reviewedPage('b-eu', 'b.test')]
+    });
+    try {
+        await rm(path.join(world.labelsDir, 'train.labels.json'));
+        await assert.rejects(buildTrainingManifest({
+            manifestPath: world.manifestPath, labelsDir: world.labelsDir,
+            outPath: world.outPath}),
+            /train\.labels\.json is missing\. Run prepare:corpus first\./);
+    } finally {
+        await rm(world.root, {recursive: true, force: true});
+    }
+});
+
+test('a manifest capture listed twice is refused', async () => {
+    // A duplicated entry would double the capture's weight in training
+    // without failing the exact-agreement checks.
+    const world = await buildWorld({
+        trainPages: [reviewedPage('a-eu', 'a.test')],
+        developmentPages: [reviewedPage('b-eu', 'b.test')]
+    });
+    try {
+        const stale = JSON.parse(await readFile(world.manifestPath, 'utf8'));
+        stale.splits.train.push({...stale.splits.train[0]});
+        await writeFile(world.manifestPath, JSON.stringify(stale));
+        await assert.rejects(buildTrainingManifest({
+            manifestPath: world.manifestPath, labelsDir: world.labelsDir,
+            outPath: world.outPath}),
+            /train manifest lists capture a-eu more than once\. Run prepare:corpus again\./);
+    } finally {
+        await rm(world.root, {recursive: true, force: true});
+    }
+});
+
+test('a manifest entry without capture paths is refused by name', async () => {
+    const world = await buildWorld({
+        trainPages: [reviewedPage('a-eu', 'a.test')],
+        developmentPages: [reviewedPage('b-eu', 'b.test')]
+    });
+    try {
+        const stale = JSON.parse(await readFile(world.manifestPath, 'utf8'));
+        delete stale.splits.train[0].snapshot;
+        await writeFile(world.manifestPath, JSON.stringify(stale));
+        await assert.rejects(buildTrainingManifest({
+            manifestPath: world.manifestPath, labelsDir: world.labelsDir,
+            outPath: world.outPath}),
+            /train manifest entry a-eu has no snapshot path\./);
+    } finally {
+        await rm(world.root, {recursive: true, force: true});
+    }
+});
+
 test('a group spanning train and development is refused', async () => {
     const world = await buildWorld({
         trainPages: [reviewedPage('a-eu', 'shared.test')],

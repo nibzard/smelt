@@ -44,7 +44,8 @@ function rowKey(row) {
 
 function validateDataset(dataset, split) {
     requireValue(dataset?.schemaVersion === 1, `Expected ${split} labels schemaVersion 1.`);
-    requireValue(dataset.split === split, `Expected ${split} labels.`);
+    requireValue(dataset.split === split, `Expected ${split} labels; this dataset declares `
+        + `${JSON.stringify(dataset.split) ?? 'none'}.`);
     requireValue(Array.isArray(dataset.pages) && dataset.pages.length > 0,
         `Expected nonempty ${split} pages.`);
     const pages = new Map();
@@ -54,6 +55,11 @@ function validateDataset(dataset, split) {
         requireValue(!pages.has(page.id), `Duplicate page id: ${page.id}`);
         requireValue(typeof page.hasBanner === 'boolean', `Invalid hasBanner: ${page.id}`);
         requireValue(Array.isArray(page.acceptableRoots), `Invalid acceptableRoots: ${page.id}`);
+        // The group drives the disjoint-role check; without it every page
+        // would share the group undefined and the refusal could not name
+        // what overlaps.
+        requireValue(typeof page.group === 'string' && page.group.length > 0,
+            `Invalid group: ${page.id}`);
         pages.set(page.id, page);
     }
     return pages;
