@@ -51,8 +51,8 @@ above do not change.
 - The first real `ci-50` browser-latency report exists
   (`runs/bench-ci-50.json`, local only): 50 train-split captures, Chromium
   151 headless, 4x CPU throttle, three warm-ups and 30 measured calls per
-  page. Initialization p50 71.2 ms, p95 133.1 ms; first call p50 22.3 ms,
-  p95 70.6 ms; repeated call p50 11.2 ms, p95 44.0 ms. No truncated or
+  page. Initialization p50 71.2 ms, p95 130.8 ms; first call p50 25.0 ms,
+  p95 64.9 ms; repeated call p50 11.5 ms, p95 44.6 ms. No truncated or
   degraded pages. This is detector-only latency, not the workflow
   added-latency gate.
 - Producing that report required replay fixes, committed with the evidence:
@@ -60,18 +60,26 @@ above do not change.
   detection), aligns replayed elements by stamped ID because the HTML
   parser relocates script-moved elements, serializes void elements without
   closing tags, and blocks all network requests during benchmark replay.
-  34 of the 50 pages carry more than one accessible frame document; 102
-  further frame records are placeholders for documents the capture could
-  not reach. 127,863 of 129,130 snapshot elements replay in the top frame.
-  The parser inserted seven elements with no snapshot counterpart on six
-  pages; the report counts them instead of failing those pages.
+  A later review of the replay found two text bugs, fixed and re-measured
+  on 2026-09-08: replay now inserts one separator space between an
+  element's text and its child elements, because capture trims each text
+  sample and merged words broke word-boundary rules such as
+  `\bcookies\b` (training on replay scored text differently from the
+  captured browser); and raw-text elements (`iframe`, `textarea`,
+  `title`, and similar) now serialize their text without recorded element
+  children, which no HTML parser can rebuild. 34 of the 50 pages carry
+  more than one accessible frame document; 102 further frame records are
+  placeholders for documents the capture could not reach. 127,863 of
+  129,130 snapshot elements replay in the top frame. The parser inserted
+  seven elements with no snapshot counterpart on six pages; the report
+  counts them instead of failing those pages.
 - The development and frozen splits also have latency reports
   (`runs/bench-dev-36.json` and `runs/bench-frozen-41.json`, local only),
   measured the same way over the 36 development and 41 frozen pilot
-  captures. Development: initialization p50 63.6 ms, p95 176.1 ms; first
-  call p50 19.4 ms, p95 68.4 ms; repeated call p50 8.7 ms, p95 45.5 ms.
-  Frozen: initialization p50 67.7 ms, p95 137.9 ms; first call p50
-  22.5 ms, p95 73.7 ms; repeated call p50 9.9 ms, p95 52.3 ms. No page
+  captures. Development: initialization p50 63.3 ms, p95 173.7 ms; first
+  call p50 18.9 ms, p95 84.7 ms; repeated call p50 9.0 ms, p95 45.6 ms.
+  Frozen: initialization p50 69.6 ms, p95 134.5 ms; first call p50
+  22.0 ms, p95 73.5 ms; repeated call p50 10.2 ms, p95 52.7 ms. No page
   truncated or degraded in either run. Both are partial probe sets; the
   full 1,000-page sets await the release corpus. The frozen run measures
   latency only. It feeds no failure digest and no loop input (IDEA.md

@@ -186,10 +186,12 @@ function vectorizeSplit(module, split, name) {
     for (const page of labels.pages) {
         const capture = captureById.get(page.id);
         if (capture === undefined) throw new LoopError(`Missing capture for page: ${page.id}`);
-        // A page whose acceptable roots all sit in other frame documents can
-        // neither produce nor score a correct root in a top-frame replay.
-        // Skip it, count it, and leave it out of scoring. A page without
-        // any acceptable root is a true negative, not a skip.
+        // A page whose acceptable roots all sit outside the replayable top
+        // frame can neither produce nor score a correct root. In practice
+        // the roots sit in other frame documents, but any non-replayable
+        // root (under a skipped tag, for example) counts too. Skip the
+        // page, count it, and leave it out of scoring. A page without any
+        // acceptable root is a true negative, not a skip.
         const replayableIds = new Set(replayableElements(capture.snapshot).map(element => element.id));
         if (page.acceptableRoots.length > 0
                 && !page.acceptableRoots.some(rootId => replayableIds.has(rootId))) {
@@ -543,11 +545,12 @@ export function createCommandAgent(command, args = [], options = {}) {
 }
 
 async function evaluateRules(module, split) {
-    const {rows, labels, frameRootPages, slowestPageMs, captureById} =
+    const {rows, labels, frameRootPages, phantomElements, slowestPageMs, captureById} =
         vectorizeSplit(module, split, 'development');
     const scores = scoreRows(module, rows);
     const {threshold, f1} = selectThreshold(labels, rows, scores);
-    return {rows, labels, frameRootPages, scores, threshold, f1, slowestPageMs, captureById};
+    return {rows, labels, frameRootPages, phantomElements, scores, threshold, f1,
+        slowestPageMs, captureById};
 }
 
 /**

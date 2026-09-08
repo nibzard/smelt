@@ -11,6 +11,13 @@ const SKIPPED_TAGS = new Set(['script', 'noscript', 'style', 'template']);
 const VOID_TAGS = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img',
     'input', 'link', 'meta', 'param', 'source', 'track', 'wbr']);
 
+// The HTML parser treats the content of these elements as raw text or
+// RCDATA, so it cannot rebuild recorded element children inside them.
+// Skip those children, as for void elements, so serializer and traversal
+// stay aligned with what a parser can reproduce.
+const RAWTEXT_TAGS = new Set(['iframe', 'noembed', 'noframes', 'textarea',
+    'title', 'xmp']);
+
 // Every replayed element carries its snapshot ID, so alignment works by
 // identity. The HTML parser relocates elements that scripts moved into
 // parser-illegal positions, which breaks alignment by position.
@@ -64,10 +71,16 @@ function serializeElement(element, snapshotById) {
         .join('');
     const marker = ` ${REPLAY_ID_ATTRIBUTE}="${escapeAttribute(element.id)}"`;
     if (VOID_TAGS.has(element.tagName)) return `<${element.tagName}${attrs}${marker}>`;
-    const children = element.children
+    const children = RAWTEXT_TAGS.has(element.tagName) ? '' : element.children
         .map(id => serializeElement(snapshotById.get(id), snapshotById))
         .join('');
-    return `<${element.tagName}${attrs}${marker}>${escapeText(element.textSample)}${children}</${element.tagName}>`;
+    // Capture trims each text sample, so replay cannot know whether a space
+    // separated the parent's text from its first child element. Emit one
+    // separator space whenever both text and children exist: merged words
+    // would break the word-boundary rules, but an extra space never
+    // removes a word boundary.
+    const separator = element.textSample && children ? ' ' : '';
+    return `<${element.tagName}${attrs}${marker}>${escapeText(element.textSample)}${separator}${children}</${element.tagName}>`;
 }
 
 /**
@@ -91,9 +104,10 @@ export function replayableElements(snapshot) {
         }
         if (SKIPPED_TAGS.has(element.tagName)) return;
         ordered.push(element);
-        // Void elements are serialized without children, so their children
-        // cannot replay. Skip them here to match the serializer.
-        if (VOID_TAGS.has(element.tagName)) return;
+        // Void elements are serialized without children, and raw-text
+        // elements are serialized with text content only, so children of
+        // both cannot replay. Skip them here to match the serializer.
+        if (VOID_TAGS.has(element.tagName) || RAWTEXT_TAGS.has(element.tagName)) return;
         for (const child of element.children ?? []) visit(child);
     };
     visit(snapshot.rootElementId);

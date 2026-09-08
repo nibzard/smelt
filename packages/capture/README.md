@@ -147,3 +147,12 @@ browser-versus-Node comparison. That document needs its own layout, for
 example from a real browser or a test stub. `documentFromSnapshot()` and
 `runFrozenSnapshot()` also report `phantomCount`, the number of elements the
 HTML parser inserted without a snapshot counterpart.
+
+The serializer keeps text usable for word-boundary rules. Each element holds
+one normalized text sample, so the replay cannot know the exact spacing
+around child elements. When an element holds both text and child elements,
+the serializer emits one separator space between them. Merged words would
+break rules such as `\bcookies\b`; an added space cannot remove a word
+boundary. Raw-text elements (`iframe`, `textarea`, `title`, and similar tags)
+keep their text sample, but the HTML parser reads their content as text, so
+recorded element children inside them are not serialized and cannot replay.

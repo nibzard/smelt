@@ -109,6 +109,23 @@ function newsletterPage(id, group) {
     `, 'newsletter');
 }
 
+// A page whose only acceptable root sits in another frame document. The
+// top-frame replay can neither produce nor score that root.
+function frameRootPage(id, group) {
+    const item = consentPage(id, group);
+    const frameBanner = 'frame-element-banner';
+    item.capture.snapshot.elements.push(
+        {id: frameBanner, tagName: 'div', textSample: 'Frame banner', attributes: {}, children: []}
+    );
+    item.capture.features.elements.push({id: frameBanner, layout: {
+        rect: {x: 0, y: 0, top: 0, right: 300, bottom: 150, left: 0, width: 300, height: 150},
+        display: 'block', visibility: 'visible', opacity: 1, position: 'fixed', zIndex: 5
+    }});
+    item.page.acceptableRoots = [frameBanner];
+    item.page.exactRoot = frameBanner;
+    return item;
+}
+
 function developmentSplit() {
     return {
         labels: {
@@ -116,12 +133,14 @@ function developmentSplit() {
             split: 'development',
             pages: [
                 consentPage('dev-positive', 'example-d', 'We use cookies and personalized ads.').page,
-                newsletterPage('dev-newsletter', 'example-e').page
+                newsletterPage('dev-newsletter', 'example-e').page,
+                frameRootPage('dev-frame-root', 'example-f').page
             ]
         },
         captures: [
             consentPage('dev-positive', 'example-d', 'We use cookies and personalized ads.').capture,
-            newsletterPage('dev-newsletter', 'example-e').capture
+            newsletterPage('dev-newsletter', 'example-e').capture,
+            frameRootPage('dev-frame-root', 'example-f').capture
         ]
     };
 }
@@ -232,6 +251,10 @@ test('runRulesLoop keeps a real improvement and discards the rest', async () => 
     assert.equal(log.incumbent.f1, 0.666667);
     assert.equal(log.final.threshold, 15);
     assert.deepEqual(log.iterations[0].gates.f1, {f1: 1, incumbentF1: 0.666667});
+    // The frame-root page leaves scoring; the latency gate still reports it,
+    // together with the parser-inserted element count over the split.
+    assert.equal(log.iterations[0].gates.latency.frameRootPages, 1);
+    assert.equal(log.iterations[0].gates.latency.phantomElements, 0);
     assert.equal(log.iterations[0].costUsd, 0.01);
     assert.deepEqual(log.iterations[0].usage, {inputTokens: 1000, outputTokens: 500});
     assert.ok(log.iterations[1].reasons[0].startsWith('ratchet:'));
@@ -321,6 +344,7 @@ test('runRulesLoop discards slow candidates at the latency gate', async () => {
     assert.ok(log.iterations[0].reasons[0].startsWith('latency:'));
     assert.equal(log.iterations[0].gates.latency.ok, false);
     assert.ok(log.iterations[0].gates.latency.slowestPageMs >= 0);
+    assert.equal(typeof log.iterations[0].gates.latency.phantomElements, 'number');
     assert.equal(log.iterations[0].gates.f1, undefined);
     assert.equal(log.final.changed, false);
 });

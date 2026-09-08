@@ -156,3 +156,32 @@ test('vectors hidden consent notices as not visible', () => {
     assert.equal(vector['banner-text'], 3);
     assert.equal(vector.visibility, -4);
 });
+
+test('replay keeps the word boundaries the banner-text rule reads', () => {
+    // The banner element holds its own text directly before the button.
+    // Capture trims that text, and replay used to glue it to the button
+    // text. The merged words stopped \bcookies\b from matching on the
+    // replay side although it matched in the captured browser, so training
+    // on replay diverged from detection in the browser. The separator
+    // space keeps both sides equal.
+    const doc = parse(`
+        <html><body>
+            <main id="content"><h1>Example shop</h1></main>
+            <section id="consent" role="dialog" aria-modal="true">
+                We use cookies <button id="accept">Accept</button>
+            </section>
+        </body></html>
+    `);
+    installLayout(doc, new Map([
+        ['content', layout({x: 80, y: 80, width: 720, height: 420})],
+        ['consent', layout({x: 0, y: 650, width: 1200, height: 250}, 'fixed', '2147483647')]
+    ]));
+
+    const serveRun = consentRules().against(doc);
+    const serveVector = vectorForConsentCandidate(
+        serveRun.get(doc.getElementById('consent')));
+    const trainVector = vectorByDomId(snapshotRun(doc, 'word-boundary-parity'), 'consent');
+
+    assert.equal(serveVector['banner-text'], 3);
+    assert.deepEqual(trainVector, serveVector);
+});

@@ -133,10 +133,12 @@ function vectorizeSplit(dataset, captures) {
     for (const page of labels.values()) {
         const capture = captureById.get(page.id);
         requireValue(capture !== undefined, `Missing capture for page: ${page.id}`);
-        // A page whose acceptable roots all sit in other frame documents can
-        // neither produce nor score a correct root in a top-frame replay.
-        // Skip it, count it, and leave it out of scoring. A page without
-        // any acceptable root is a true negative, not a skip.
+        // A page whose acceptable roots all sit outside the replayable top
+        // frame can neither produce nor score a correct root. In practice
+        // the roots sit in other frame documents, but any non-replayable
+        // root (under a skipped tag, for example) counts too. Skip the
+        // page, count it, and leave it out of scoring. A page without any
+        // acceptable root is a true negative, not a skip.
         const replayableIds = new Set(replayableElements(capture.snapshot).map(element => element.id));
         if (page.acceptableRoots.length > 0
                 && !page.acceptableRoots.some(rootId => replayableIds.has(rootId))) {

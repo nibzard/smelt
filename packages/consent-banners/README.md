@@ -25,8 +25,10 @@ Every replayed element carries its snapshot ID in a data attribute, so
 alignment survives the HTML parser moving elements. The HTML parser can
 insert elements the snapshot never held, such as a `tbody` around bare `tr`
 rows; the report counts them as `phantomElements` instead of failing the
-page. The benchmark context blocks all network requests, so a replay
-fetches nothing.
+page. When an element holds both text and child elements, the replay inserts
+one separator space, so word-boundary rules such as `\bcookies\b` score the
+replay and the captured browser the same way. The benchmark context blocks
+all network requests, so a replay fetches nothing.
 
 Each page gets one first-call measurement, three warm-ups, and 30 measured
 repeated calls. The JSON report includes initialization, first-call, p50, and
