@@ -523,9 +523,10 @@ function neutralizeRemoteLoads(snapshot) {
 // parses to a scalar, null, or an array is junk, the same as an
 // unparseable line: only an object can hold a proposal record. The
 // unreadable count covers every junk line; the labelless count covers
-// objects that are not proposal records — a missing capture id or no
-// labels at all, the error-record shape a failed batch writes. Both
-// counts travel back to the caller, so a wrong file format and a batch
+// objects that are not proposal records — a capture id that is missing
+// or not a string, or no labels at all, like the error records a
+// failed batch writes. Both counts travel back to the caller, so a
+// wrong file format and a batch
 // that produced no proposals are warnings instead of a silent
 // zero-panel build.
 async function readProposals(proposalsPath) {

@@ -747,16 +747,18 @@ test('the CLI warns when a proposals file is unusable', async () => {
             /1 line\(s\) hold objects that are not proposal records, like the error records/);
 
         // Objects with labels but no string capture id are the same
-        // bucket; the message must stay true for them too.
+        // bucket; the message must stay true for them too. An empty
+        // object lands there as well.
         const noIdPath = resolve(capturesDir, 'no-id.jsonl');
         await writeFile(noIdPath, [
             JSON.stringify({capture_id: 7, labels: {has_banner: true}}),
-            JSON.stringify({labels: {has_banner: true}})
+            JSON.stringify({labels: {has_banner: true}}),
+            '{}'
         ].join('\n') + '\n');
         const noId = await run(noIdPath);
         assert.match(noId.stderr, /no readable proposals records/);
         assert.match(noId.stderr,
-            /2 line\(s\) hold objects that are not proposal records/);
+            /3 line\(s\) hold objects that are not proposal records/);
 
         // Lines that parse to scalars, null, or arrays are junk from a
         // wrong file format, not batch records; calling them the failed
