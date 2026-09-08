@@ -39,6 +39,10 @@ review records acceptable roots, and every capture enters the review queue.
 Expected classes in the manifests are recipe hints for balance reporting
 only. The test split must stay out of agent-loop inputs.
 
+Writes are atomic. The split label files and the split manifest are staged
+through a temp file and swapped in by rename, and each keeps a `.bak` copy
+of its previous content, because `corpus/` is outside version control.
+
 A re-run keeps pasted human labels. A page record with
 `label_status: "reviewed"` survives verbatim. An `unresolved` record
 survives when its `review_notes` no longer start with
@@ -64,7 +68,9 @@ It exits nonzero when any check fails. It catches the paste accidents a
 schema check alone misses: a record pasted into the wrong split file, a
 paste below the stub instead of over it, a record for a capture that does
 not exist, a group that disagrees with the manifest or queue, a missing
-capture file, and captures on disk that no manifest knows about.
+capture file, and captures on disk that no manifest knows about. A page or
+queue entry that is not an object is reported as a problem instead of
+stopping the run, so one hand-edit mistake cannot hide the rest.
 
 ## Apply reviewed labels
 

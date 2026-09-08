@@ -105,7 +105,13 @@ export async function checkLabels(input) {
             problems.push(problem('labels-semantic', `${file}: ${error.message}`));
         }
         datasets[split] = dataset;
-        for (const page of dataset.pages ?? []) {
+        // A hand edit can leave entries the schema check already flags;
+        // iterating them raw would throw and discard every problem
+        // collected so far, so the walk skips what it cannot inspect.
+        for (const page of Array.isArray(dataset.pages) ? dataset.pages : []) {
+            if (page === null || typeof page !== 'object' || Array.isArray(page)) {
+                continue;
+            }
             if (seenInFile.has(page.id)) {
                 problems.push(problem('labels-duplicate-id',
                     `page ${page.id} appears in ${seenInFile.get(page.id)} and ${split}`));
@@ -120,11 +126,27 @@ export async function checkLabels(input) {
     //    captures directory, so a paste into the wrong split file shows up
     //    as a split disagreement here.
     const queue = await readJson(queuePath);
-    const queueById = new Map((queue.items ?? []).map(item => [item.capture_id, item]));
+    const queueEntries = Array.isArray(queue.items) ? queue.items : [];
+    for (const [index, item] of queueEntries.entries()) {
+        if (item === null || typeof item !== 'object' || Array.isArray(item)
+                || typeof item.capture_id !== 'string') {
+            problems.push(problem('queue-item-shape',
+                `review queue entry ${index} is not an item object with a `
+                    + 'capture_id; fix or regenerate the queue'));
+        }
+    }
+    const queueById = new Map(queueEntries
+        .filter(item => item !== null && typeof item === 'object' && !Array.isArray(item)
+            && typeof item.capture_id === 'string')
+        .map(item => [item.capture_id, item]));
 
     const groupsFor = {};
     for (const split of SPLITS) {
-        for (const page of datasets[split]?.pages ?? []) {
+        const pages = Array.isArray(datasets[split]?.pages) ? datasets[split].pages : [];
+        for (const page of pages) {
+            if (page === null || typeof page !== 'object' || Array.isArray(page)) {
+                continue;
+            }
             const entry = manifestById.get(page.id);
             if (!entry) {
                 problems.push(problem('labels-unknown-capture',
@@ -201,8 +223,8 @@ export async function checkLabels(input) {
         manifestCaptures: manifestById.size,
         queueItems: queueById.size,
         reviewed: SPLITS.reduce((sum, split) =>
-            sum + (datasets[split]?.pages ?? []).filter(page =>
-                page.label_status === 'reviewed').length, 0)
+            sum + (Array.isArray(datasets[split]?.pages) ? datasets[split].pages : [])
+                .filter(page => page?.label_status === 'reviewed').length, 0)
     };
     return {problems, stats};
 }

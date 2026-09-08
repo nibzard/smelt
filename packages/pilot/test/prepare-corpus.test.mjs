@@ -387,3 +387,44 @@ test('prepareCorpus keeps pasted human labels across a re-run', async () => {
         await rm(root, {recursive: true, force: true});
     }
 });
+
+test('a re-run stages every labels file and the manifest and keeps backups', async () => {
+    const {root, capturesDir, sessionsDir} = await makeCorpus([
+        {id: 'a-eu', group: 'a.test', expect: 'banner'},
+        {id: 'a-us', group: 'a.test', expect: 'none'},
+        {id: 'b-eu', group: 'b.test', expect: 'none'}
+    ]);
+    const queuePath = path.join(root, 'review-queue.json');
+    await writeFile(queuePath, JSON.stringify({
+        schema_version: 1, generated_at: '2026-09-07T00:00:00Z', items: []
+    }));
+    const labelsDir = path.join(root, 'manifests', 'labels');
+    try {
+        const options = {capturesDir, sessionsDir, outDir: root, queuePath,
+            labelsSchemaPath, queueSchemaPath};
+        await prepareCorpus(options);
+        const before = {};
+        for (const split of ['train', 'development', 'test']) {
+            const file = path.join(labelsDir, `${split}.labels.json`);
+            const exists = await readFile(file).then(() => true, () => false);
+            if (exists) before[split] = await readFile(file, 'utf8');
+        }
+        const splitsPath = path.join(root, 'manifests', 'splits.json');
+        const manifestBefore = await readFile(splitsPath, 'utf8');
+
+        await prepareCorpus(options);
+
+        // The labels directory is outside version control, so every
+        // guarded file keeps a .bak of its previous content and leaves
+        // no staging temp behind; the manifest gets the same guard.
+        for (const [split, text] of Object.entries(before)) {
+            const file = path.join(labelsDir, `${split}.labels.json`);
+            assert.equal(await readFile(`${file}.bak`, 'utf8'), text, split);
+            await assert.rejects(() => readFile(`${file}.tmp`), /ENOENT/);
+        }
+        assert.equal(await readFile(`${splitsPath}.bak`, 'utf8'), manifestBefore);
+        await assert.rejects(() => readFile(`${splitsPath}.tmp`), /ENOENT/);
+    } finally {
+        await rm(root, {recursive: true, force: true});
+    }
+});

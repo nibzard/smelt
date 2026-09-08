@@ -10,9 +10,10 @@
 // records never touch the file they targeted.
 
 import {Buffer} from 'node:buffer';
-import {copyFile, open, readFile, rename} from 'node:fs/promises';
+import {readFile} from 'node:fs/promises';
 import path from 'node:path';
 
+import {commitStaged, stageWrite} from './atomic-write.mjs';
 import {validateConsentLabels} from './labels.mjs';
 import {validateSchema} from './schema-check.mjs';
 import {SPLITS} from './prepare-corpus.mjs';
@@ -33,26 +34,9 @@ function stableStringify(value) {
     return JSON.stringify(value) ?? 'null';
 }
 
-// Stage the new content next to the file, keep one backup of the
-// current content, then swap with an atomic rename. A crash or a full
-// disk mid-write leaves either the old or the new content, never a
-// truncated file; the labels directory is outside version control, so
-// no other recovery path exists.
-async function stageWrite(file, text) {
-    const tmp = `${file}.tmp`;
-    const handle = await open(tmp, 'w');
-    try {
-        await handle.writeFile(text);
-        await handle.sync();
-    } finally {
-        await handle.close();
-    }
-    try {
-        await copyFile(file, `${file}.bak`);
-    } catch (error) {
-        if (error.code !== 'ENOENT') throw error;
-    }
-}
+// Staged writes with a kept backup come from ./atomic-write.mjs, shared
+// with prepare-corpus: the labels directory is outside version control,
+// so no other recovery path exists.
 
 /**
  * Parse the contents of a records file.
@@ -309,7 +293,7 @@ export async function applyLabels(input) {
             staged.push({file, split});
         }
         for (const {file, split} of staged) {
-            await rename(`${file}.tmp`, file);
+            await commitStaged(file);
             written.push(file);
             applied.push(...touched.get(split));
         }

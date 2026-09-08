@@ -191,3 +191,48 @@ test('a missing labels page for a manifest capture is flagged', async () => {
 test('inputs are required', async () => {
     await assert.rejects(() => checkLabels({}), /Expected a labels directory/);
 });
+
+test('malformed page and queue entries become problems, not crashes', async () => {
+    const world = await buildWorld();
+    try {
+        // A hand edit can leave a null page beside the real one, a pages
+        // field that is not an array, and a queue entry that is not an
+        // item object. Every check must run to the end and report each
+        // shape, instead of throwing on the first one and discarding the
+        // whole problem list.
+        await writeFile(path.join(world.labelsDir, 'train.labels.json'),
+            JSON.stringify({schema_version: 1, split: 'train',
+                pages: [null, stubPage('a-eu', 'a.test')]}));
+        await writeFile(path.join(world.labelsDir, 'development.labels.json'),
+            JSON.stringify({schema_version: 1, split: 'development',
+                pages: {oops: 'not an array'}}));
+        const queueItem = id => ({
+            capture_id: id, group: `${id.split('-')[1]}.test`,
+            reason: 'initial label', source: 'human_flag',
+            snapshot_path: `${path.join(world.capturesDir, id)}.snapshot.json`,
+            notes: 'queued'
+        });
+        await writeFile(world.queuePath, JSON.stringify({
+            schema_version: 1, generated_at: '2026-09-08T00:00:00Z',
+            items: [null, queueItem('a-eu'), queueItem('b-eu')]
+        }));
+
+        const {problems, stats} = await checkLabels({
+            labelsDir: world.labelsDir,
+            manifestPath: world.manifestPath,
+            queuePath: world.queuePath,
+            capturesDir: world.capturesDir,
+            labelsSchemaPath
+        });
+        const codes = new Set(problems.map(item => item.code));
+        assert.ok(codes.has('queue-item-shape'), 'the null queue entry is named');
+        assert.ok(codes.has('labels-schema'), 'the null page and the non-array pages are named');
+        assert.ok(codes.has('labels-missing-page'), 'b-eu still gets its missing-page check');
+        // Only the object page with an id counts; the queue counts its
+        // two real items.
+        assert.equal(stats.labelPages, 1);
+        assert.equal(stats.queueItems, 2);
+    } finally {
+        await rm(world.root, {recursive: true, force: true});
+    }
+});

@@ -12,6 +12,7 @@ import {createHash} from 'node:crypto';
 import {mkdir, readdir, readFile, writeFile} from 'node:fs/promises';
 import path from 'node:path';
 
+import {commitStaged, stageWrite} from './atomic-write.mjs';
 import {validateSchema} from './schema-check.mjs';
 
 export const SPLIT_RATIOS = {train: 0.6, development: 0.2, test: 0.2};
@@ -177,7 +178,6 @@ export function mergeCorpusLabels(freshLabels, existing) {
     }
     const labels = {train: [], development: [], test: []};
     const report = {preservedReviewed: 0, preservedUnresolved: 0, moved: [], dropped: []};
-    const freshIds = new Set(SPLITS.flatMap(split => freshLabels[split].map(page => page.id)));
     for (const split of SPLITS) {
         for (const stub of freshLabels[split]) {
             const record = byId.get(stub.id);
@@ -376,15 +376,26 @@ export async function prepareCorpus(options = {}) {
 
     const manifestsDir = path.join(outDir, 'manifests');
     await mkdir(labelsDir, {recursive: true});
-    await writeFile(path.join(manifestsDir, 'splits.json'),
-        `${JSON.stringify(manifest, null, 2)}\n`);
+    // Every guarded file is staged before any commit, and the split
+    // manifest commits last: a crash mid-sequence leaves at most a labels
+    // and manifest pair that labels:doctor flags loudly, never a
+    // truncated human-labels file. Each staged write keeps a .bak of the
+    // previous content; corpus/ is outside version control, so no other
+    // recovery path exists.
+    const staged = [];
     for (const split of SPLITS) {
         // The canonical label schema requires at least one page, so an
         // empty split gets no label file. The manifest lists it as empty.
         if (labels[split].length === 0) continue;
-        await writeFile(path.join(labelsDir, `${split}.labels.json`),
+        const file = path.join(labelsDir, `${split}.labels.json`);
+        await stageWrite(file,
             `${JSON.stringify({schema_version: 1, split, pages: labels[split]}, null, 2)}\n`);
+        staged.push(file);
     }
+    const splitsPath = path.join(manifestsDir, 'splits.json');
+    await stageWrite(splitsPath, `${JSON.stringify(manifest, null, 2)}\n`);
+    for (const file of staged) await commitStaged(file);
+    await commitStaged(splitsPath);
     await mkdir(path.join(outDir, 'stats'), {recursive: true});
     await writeFile(path.join(outDir, 'stats', 'pilot-corpus-stats.json'),
         `${JSON.stringify(stats, null, 2)}\n`);
