@@ -97,6 +97,12 @@ from the labels file, so the record cannot rewrite the group that split the
 corpus even when the queue disagrees. Clicks on the control bar, the JSON
 box, and blank page areas never change the selection.
 
+Wrapped inline elements have one known limit. Each element is placed at its
+bounding box. A wrapped inline element, such as a link or span that spans
+several lines, has a box that also covers its neighbors. The topmost box
+takes the click. When a click selects the wrong inline element, select the
+block container around it instead.
+
 Generated pages load nothing remote. The viewer strips every
 loading attribute — iframe and image sources, `srcset`, `poster`, preload
 and stylesheet `link` targets, meta refresh — before serialization, and
