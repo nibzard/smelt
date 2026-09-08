@@ -9,7 +9,8 @@
     "prepare:corpus": "node prepare-corpus-cli.mjs",
     "test": "node --test",
     "review:viewer": "node review-viewer-cli.mjs",
-    "labels:doctor": "node labels-doctor.mjs"
+    "labels:doctor": "node labels-doctor.mjs",
+    "labels:apply": "node labels-apply.mjs"
   },
   "engines": {
     "node": ">=20"

@@ -66,6 +66,26 @@ paste below the stub instead of over it, a record for a capture that does
 not exist, a group that disagrees with the manifest or queue, a missing
 capture file, and captures on disk that no manifest knows about.
 
+## Apply reviewed labels
+
+`labels:apply` writes the copied records into the split label files, so the
+reviewer never pastes over a stub by hand. Collect the copied records into
+one file per reviewing session, then run it from the repository root:
+
+```sh
+node packages/pilot/labels-apply.mjs \
+  --records path/to/collected.json \
+  --labels corpus/manifests/labels
+```
+
+The records file holds a JSON array of records, or an object with a `pages`
+array. Each record replaces the page stub with the same `id`. A record is
+rejected when no split file holds that id, when its `group` disagrees with
+the labels file, or when the replacement would fail the schema or semantic
+checks. A rejected record leaves its file untouched, and the command exits
+nonzero. Applying over an earlier reviewed record replaces it, which lets a
+reviewer correct their own label. Run `labels:doctor` after every apply.
+
 ## Review viewer
 
 `review:viewer` renders every queued capture as a standalone HTML page for
@@ -89,8 +109,8 @@ the crawl recipe or the capture egress location), and edit the review notes
 (prefilled from the page's stub). The **Copy label JSON** button produces a
 complete reviewed record — `id`, `group`, `label_status`, `has_banner`,
 `acceptable_roots`, `banner_root`, `banner_kind`, `jurisdiction`, `frame`,
-`evidence`, `confidence`, and `review_notes` — ready to paste over the
-page's stub in the split label file. The record passes
+`evidence`, `confidence`, and `review_notes` — ready for `labels:apply`, or
+for a manual paste over the page's stub in the split label file. The record passes
 `validateConsentLabels` as-is; a browser test in
 `test/review-viewer.browser.test.mjs` keeps that contract. The group comes
 from the labels file, so the record cannot rewrite the group that split the
