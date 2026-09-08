@@ -12,4 +12,5 @@ Rules:
    0002 is the naming decision. Record 0003 defines the Steel pilot and
    supersedes the dates and continuation rules in 0001. Record 0004 confirms
    consent-banner root detection as the first Steel detector task. Record 0005
-   prepares the 2026-10-16 pilot evidence review.
+   prepares the 2026-10-16 pilot evidence review. Record 0006 is the archive
+   and transfer procedure that runs for every stopping outcome.

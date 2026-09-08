@@ -1209,7 +1209,7 @@
       "id": "T039",
       "title": "Write the archive and transfer procedure",
       "priority": 5,
-      "status": "todo",
+      "status": "done",
       "details": "Document the evidence publication, 14-day comment window, maintainer transfer offer, final tag, artifact preservation, and POSTMORTEM.md process.",
       "steps": [
         "Write the procedure in project documentation.",
@@ -1229,7 +1229,8 @@
         "T023"
       ],
       "created_at": "2026-09-07T21:13:21Z",
-      "updated_at": "2026-09-07T21:13:21Z"
+      "updated_at": "2026-09-08T08:20:00Z",
+      "notes": "Shipped as decisions/0006-archive-and-transfer-procedure.md: six ordered steps (publish the evidence, open the 14-day window with the transfer offer posted on day one, complete or decline the transfer, preserve the artifacts, write POSTMORTEM.md, tag vX.Y.Z-final), a tracks table covering every stopping outcome (pause a task, change the task, stop one integration while the project continues, narrow, full archive), and a fillable POSTMORTEM.md template. decisions/README.md registers the record.\n\nThe record references decision 0003 and the review calendar as required: the 2026-10-16 pilot evidence review, the public-launch day-0 rule with review dates registered at launch, and decision 0001 rule 4 technical kill. It quotes the 0003 supersede note in full (launch dates, continuation rules, trainer archival) and separates sourced rules from the three procedural details the record itself adds.\n\nRecords 0001, 0002, and 0003 existed on disk but were never committed, although the tracked decisions/README.md cites all three. This commit adds them unchanged, closing that gap. IDEA.md, the first entry in the task files list, stays untracked by the repository policy; the record quotes its sections 4.5, 4.6, and 3.5.5 instead.\n\nAn adversarial review workflow (18 agents, three dimensions, per-finding refutation) confirmed 13 findings against the first draft; all are fixed. The substantive ones: the draft quoted superseded decision 0001 rules as live (the 100-weekly-downloads archive trigger and the v0.x factory freeze); it spread the 14-day window to the technical kill and pauses although sources attach it to public archive only; it claimed sources prefer transfer over archive; it misquoted the deprecation ladder and the supersede note; the stop-one-integration outcome from decision 0005 had no track; the evidence step demanded a launch-gated dashboard before launch; the transfer offer landed after the window it had to fill; and the POSTMORTEM template offered a narrowing outcome that never writes one. A focused verifier then confirmed all 13 fixed and found one residual misattribution (the quarterly-retraining cadence credited to 0003 rule 7); the record now re-adopts that cadence explicitly.\n\nHonest limits: this is governance documentation with no executable test. The procedure and template are exercised only when a stopping outcome actually runs. The narrow window before the 2026-10-16 review is the first realistic use."
     }
   ]
 }
