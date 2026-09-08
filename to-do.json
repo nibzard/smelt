@@ -876,7 +876,7 @@
       "id": "T028",
       "title": "Create the CLI launcher and Python factory bridge",
       "priority": 3,
-      "status": "todo",
+      "status": "done",
       "details": "Add @smelt-oss/cli as a thin Node launcher that provisions a uv-managed Python environment and runs crawl, train, loop, test, bench, and export commands.",
       "steps": [
         "Create the CLI package and command surface.",
@@ -890,8 +890,13 @@
         "factory"
       ],
       "files": [
-        "IDEA.md",
-        "README.md"
+        "packages/cli/factory.mjs",
+        "packages/cli/smelt.mjs",
+        "packages/cli/pyproject.toml",
+        "packages/cli/uv.lock",
+        "packages/cli/test/cli.test.mjs",
+        "packages/cli/README.md",
+        "packages/consent-banners/train.mjs"
       ],
       "depends_on": [
         "T013",
@@ -899,7 +904,13 @@
         "T027"
       ],
       "created_at": "2026-09-07T21:13:21Z",
-      "updated_at": "2026-09-07T21:13:21Z"
+      "updated_at": "2026-09-08T05:17:18Z",
+      "notes": [
+        "Shipped @smelt-oss/cli (IDEA.md 3.5.2): smelt.mjs dispatches crawl (--steel routes to steel-cli), train, loop, bench, and export; smelt test runs the size gate, the export gates, and reports the frozen-set gate as pending until the release corpus exists.",
+        "factory.mjs provisions the pinned factory with uv sync --locked against pyproject.toml and the committed uv.lock (lightgbm==4.7.0, numpy==2.2.6), always targeting UV_PROJECT_ENVIRONMENT so a custom venvDir reaches the sync. Measured on this machine: cold provision about 113 s (managed CPython download dominates), warm no-op sync about 40 ms.",
+        "Without uv the launcher degrades to the system Python with a warning that names the exact pins; a failing uv sync stops python commands with exit 1. train.mjs now spawns python.exe on win32.",
+        "Step 4 honesty: Linux is fully tested end to end (13 tests, including fake-uv branches for sync failure, empty venv, cold message, and system degrade). Windows runs the same logic tests in CI (windows-latest, node 20 and 24) but has no real Windows execution here; the POSIX fake-executable tests skip on win32. WSL behaves as Linux (process.platform is linux), so no WSL-specific handling exists. An adversarial review (24 agents) confirmed and fixed 6 findings: the argv filter stripping flag values equal to the command word, a train usage test that triggered real uv provisioning, the dead venvDir option, five untested failure branches, a duplicate PATH key on Windows, and stale IDEA.md 5.2 citations."
+      ]
     },
     {
       "id": "T029",

@@ -1,0 +1,13 @@
+# The Python factory environment for the smelt CLI (IDEA.md 3.5.2): the exact
+# wheels the LightGBM trainer needs. The launcher provisions this with
+# `uv sync --locked`, so uv.lock is the source of truth for strangers.
+
+[project]
+name = "smelt-factory"
+version = "0.0.0"
+description = "Pinned Python environment for the smelt training factory"
+requires-python = ">=3.11"
+dependencies = [
+    "lightgbm==4.7.0",
+    "numpy==2.2.6",
+]

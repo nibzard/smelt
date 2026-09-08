@@ -1,0 +1,27 @@
+{
+  "name": "@smelt-oss/cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The smelt command surface: a thin Node launcher that provisions a uv-managed Python factory environment and dispatches crawl, train, loop, test, bench, and export to the workspace tools (IDEA.md 3.5.2).",
+  "bin": {
+    "smelt": "./smelt.mjs"
+  },
+  "files": [
+    "README.md",
+    "factory.mjs",
+    "pyproject.toml",
+    "smelt.mjs",
+    "uv.lock"
+  ],
+  "scripts": {
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@smelt-oss/capture": "0.0.0",
+    "@smelt-oss/consent-banners": "0.0.0"
+  }
+}

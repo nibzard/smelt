@@ -297,7 +297,9 @@ print(json.dumps({"predictions": predictions, "model": booster.dump_model()}))
 
 function trainLightGbm(trainRows, predictRows) {
     const start = now();
-    const child = spawnSync('python3', ['-c', lightgbmScript()], {
+    // Windows virtual environments expose python.exe, not python3.
+    const python = process.platform === 'win32' ? 'python' : 'python3';
+    const child = spawnSync(python, ['-c', lightgbmScript()], {
         input: JSON.stringify({
             featureNames: RULE_NAMES,
             trainX: matrix(trainRows),
