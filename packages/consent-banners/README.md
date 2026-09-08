@@ -136,6 +136,58 @@ no-competition rationale, prompt version, prompt hash, token usage, and
 measured cost. Reject or flag records in `verification.issues` for human
 review; answers built from a truncated serialization are always flagged.
 
+### Batch labeling over the review queue
+
+`teacher-labels` runs one teacher over every queued capture and appends one
+provenance record per page to a JSONL file. Run it from the repository
+root:
+
+```sh
+node packages/consent-banners/teacher-labels-cli.mjs \
+  --captures corpus/captures \
+  --queue tasks/consent-banners/review-queue.json \
+  --manifest corpus/manifests/splits.json \
+  --teacher anthropic \
+  --out runs/teacher-labels/anthropic.jsonl
+```
+
+The output holds proposals for the human reviewer, never labels. Nothing
+writes proposals into the split labels files; the reviewed record is the
+only label that counts (IDEA.md 3.3.1). Use one output file per teacher so
+the two-vendor ensemble stays separable.
+
+Pass `--manifest` so the frozen test captures are excluded: the pilot test
+pages stay teacher-free and 100 percent human-verified (IDEA.md 3.3.6).
+The manifest lists capture ids and paths, not labels, so the exclusion
+never opens the test labels file.
+
+The batch is resumable. A capture with a full record in the output file is
+skipped, so an interrupted run continues where it stopped. A torn final
+line from a crash is dropped, its capture is labeled again, and the
+consumer takes the last record per capture id. Spending stops at the cost
+cap (`--max-cost`, default 40 USD; the call that crosses the cap still
+completes, so spending can overshoot by one call). The batch stops after
+five consecutive failures and labels at most `--limit` pages. Every call
+waits `--delay-ms`, 500 by default.
+
+`--dry-run` needs no API key and no teacher. It serializes every capture
+and prints the byte totals, the caps in force, the count of pages that
+truncate, and a cost estimate for both default teachers:
+
+```sh
+node packages/consent-banners/teacher-labels-cli.mjs \
+  --captures corpus/captures \
+  --queue tasks/consent-banners/review-queue.json \
+  --manifest corpus/manifests/splits.json --dry-run
+```
+
+A page that hits a serialization cap (`--max-chars`, 120000 by default;
+`--max-elements`, 2500 by default) is serialized truncated, and its answer
+is always flagged for human review. A dry run at a larger cap shows the
+trade: over the pilot queue, 150 non-test pages cost about 2.93 USD on
+Claude Haiku 4.5 at the defaults with 59 truncated pages, and 4.21 USD at
+400000 characters with one truncated page.
+
 ## Rules agent loop
 
 Run the bounded keep-or-discard loop that edits only `rules.mjs`:

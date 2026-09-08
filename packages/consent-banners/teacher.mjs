@@ -216,24 +216,57 @@ export function serializeForTeacher(snapshot, features, options = {}) {
     };
 }
 
+// Vendor metadata for both default teachers, without credentials. The
+// catalog serves dry runs and cost estimates; the adapter factories below
+// add request builders and parsers to the same metadata.
+const ANTHROPIC_META = {
+    id: 'anthropic-claude-haiku-4-5',
+    vendor: 'anthropic',
+    model: 'claude-haiku-4-5-20251001',
+    paidTierOnly: true,
+    termsVersion: 'commercial-terms-2025-06-17',
+    prices: {
+        inputPerMillionUsd: 1.0,
+        outputPerMillionUsd: 5.0,
+        checkedAt: '2026-09-08'
+    },
+    rationale: 'Anthropic Commercial Terms (effective 2025-06-17) section D.4 bars ' +
+        'building a competing product or training competing models. The Smelt student ' +
+        'is a rules-plus-trees classifier for consent-banner roots, under 50 KB ' +
+        'gzipped. It is not a language model, does not reproduce Anthropic output ' +
+        'beyond page labels, and does not compete with Claude or with agentic browser ' +
+        'products. Teacher use is one-shot labeling at training time on a paid key.'
+};
+
+const GEMINI_META = {
+    id: 'google-gemini-2.5-flash-lite',
+    vendor: 'google',
+    model: 'gemini-2.5-flash-lite',
+    paidTierOnly: true,
+    termsVersion: 'gemini-api-terms-2026-03-23-paid-tier',
+    prices: {
+        inputPerMillionUsd: 0.1,
+        outputPerMillionUsd: 0.4,
+        checkedAt: '2026-09-08'
+    },
+    rationale: 'Google Gemini API terms (effective 2026-03-23) exclude paid-tier content ' +
+        'from product improvement, and paid-tier EEA or UK content is not read by human ' +
+        'reviewers. Labeling runs on a billed paid-tier key only; the free tier is banned ' +
+        'for labeling. The trained artifact is a small classifier, not a derived ' +
+        'language model, and does not compete with Gemini.'
+};
+
+/**
+ * Both default teachers as vendor metadata, without credentials.
+ * @returns {object[]} Catalog entries with prices and rationales.
+ */
+export function teacherCatalog() {
+    return structuredClone([ANTHROPIC_META, GEMINI_META]);
+}
+
 function anthropicAdapter(apiKey) {
     return {
-        id: 'anthropic-claude-haiku-4-5',
-        vendor: 'anthropic',
-        model: 'claude-haiku-4-5-20251001',
-        paidTierOnly: true,
-        termsVersion: 'commercial-terms-2025-06-17',
-        prices: {
-            inputPerMillionUsd: 1.0,
-            outputPerMillionUsd: 5.0,
-            checkedAt: '2026-09-08'
-        },
-        rationale: 'Anthropic Commercial Terms (effective 2025-06-17) section D.4 bars ' +
-            'building a competing product or training competing models. The Smelt student ' +
-            'is a rules-plus-trees classifier for consent-banner roots, under 50 KB ' +
-            'gzipped. It is not a language model, does not reproduce Anthropic output ' +
-            'beyond page labels, and does not compete with Claude or with agentic browser ' +
-            'products. Teacher use is one-shot labeling at training time on a paid key.',
+        ...structuredClone(ANTHROPIC_META),
         buildRequest({system, user}) {
             return {
                 url: 'https://api.anthropic.com/v1/messages',
@@ -268,21 +301,7 @@ function anthropicAdapter(apiKey) {
 
 function geminiAdapter(apiKey) {
     return {
-        id: 'google-gemini-2.5-flash-lite',
-        vendor: 'google',
-        model: 'gemini-2.5-flash-lite',
-        paidTierOnly: true,
-        termsVersion: 'gemini-api-terms-2026-03-23-paid-tier',
-        prices: {
-            inputPerMillionUsd: 0.1,
-            outputPerMillionUsd: 0.4,
-            checkedAt: '2026-09-08'
-        },
-        rationale: 'Google Gemini API terms (effective 2026-03-23) exclude paid-tier content ' +
-            'from product improvement, and paid-tier EEA or UK content is not read by human ' +
-            'reviewers. Labeling runs on a billed paid-tier key only; the free tier is banned ' +
-            'for labeling. The trained artifact is a small classifier, not a derived ' +
-            'language model, and does not compete with Gemini.',
+        ...structuredClone(GEMINI_META),
         buildRequest({system, user}) {
             return {
                 url: `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent`,

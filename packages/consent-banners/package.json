@@ -47,7 +47,8 @@
     "size": "node scripts/size.mjs",
     "test": "node --test",
     "train": "node train-cli.mjs",
-    "loop": "node loop-cli.mjs"
+    "loop": "node loop-cli.mjs",
+    "teacher-labels": "node teacher-labels-cli.mjs"
   },
   "engines": {
     "node": ">=20.10"
