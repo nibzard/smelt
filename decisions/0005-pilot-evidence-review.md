@@ -30,7 +30,7 @@ The review must include these inputs:
 | Detection scoring | Acceptable-root detection precision, recall, F1, page-presence F1, exact-root accuracy, extra roots | Evaluator exists; demo data reports detection F1 0.333333 and page-presence F1 0.666667 |
 | Baselines | Hand-written rules, linear model, and tree model on the same development split | Baseline trainer exists and is covered by synthetic tests |
 | Agent loop | Bounded keep-or-discard loop compared with the best simpler baseline | Not yet present over the pilot corpus; updated 2026-09-08: T020 is closed with the loop implemented and covered by synthetic runs; a real-corpus loop still needs labels |
-| Browser latency | First-call, repeated-call, and p95 detector latency in Playwright | Updated 2026-09-08: a real `ci-50` report exists over 50 train-split pilot captures (see "Evidence updates" below); `dev-1000` and `frozen-1000` remain unreported |
+| Browser latency | First-call, repeated-call, and p95 detector latency in Playwright | Updated 2026-09-08: real reports exist for `ci-50` (50 train captures) and for the current dev and frozen splits (36 and 41 captures; see "Evidence updates" below); the full 1,000-page probe sets await the release corpus |
 | Workflow comparison | Matched Steel cases with and without Smelt, fixed agent model, prompts, and action policy | Workflow comparison evaluator exists; no real matched pilot run report is present |
 | Cost | Model calls, Steel browser time, workflow cost, capture cost, teacher cost, and review cost | Cost fields exist in the contracts; real pilot values are not present |
 | Failure slices | Failures by domain/template, consent-platform family, capture condition, and workflow failure reason | Slice fields exist; real pilot slices are not present |
@@ -65,6 +65,17 @@ above do not change.
   not reach. 127,863 of 129,130 snapshot elements replay in the top frame.
   The parser inserted seven elements with no snapshot counterpart on six
   pages; the report counts them instead of failing those pages.
+- The development and frozen splits also have latency reports
+  (`runs/bench-dev-36.json` and `runs/bench-frozen-41.json`, local only),
+  measured the same way over the 36 development and 41 frozen pilot
+  captures. Development: initialization p50 63.6 ms, p95 176.1 ms; first
+  call p50 19.4 ms, p95 68.4 ms; repeated call p50 8.7 ms, p95 45.5 ms.
+  Frozen: initialization p50 67.7 ms, p95 137.9 ms; first call p50
+  22.5 ms, p95 73.7 ms; repeated call p50 9.9 ms, p95 52.3 ms. No page
+  truncated or degraded in either run. Both are partial probe sets; the
+  full 1,000-page sets await the release corpus. The frozen run measures
+  latency only. It feeds no failure digest and no loop input (IDEA.md
+  3.2.4).
 
 ## Predeclared limits
 
