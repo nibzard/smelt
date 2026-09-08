@@ -85,6 +85,11 @@ const OVERLAY = `
       background: #16161d; color: #eee; font: 12px/1.5 monospace; padding: 8px 12px;
       border-bottom: 1px solid #444; }
   #smelt-bar a { color: #8cf; }
+  #smelt-bar .smelt-nav { margin-bottom: 4px; }
+  #smelt-bar details { margin-top: 6px; }
+  #smelt-bar summary { cursor: pointer; color: #ffd24a; }
+  #smelt-proposal button { margin-left: 0; }
+  .smelt-proposal-outline { outline: 3px dashed #d90 !important; }
   #smelt-bar button { font: 12px monospace; margin-left: 8px; padding: 2px 8px; }
   #smelt-bar select, #smelt-bar input { font: 12px monospace; margin-left: 4px; }
   #smelt-bar label { margin-left: 10px; }
@@ -96,6 +101,7 @@ const OVERLAY = `
       white-space: pre-wrap; max-height: 40%; overflow: auto; }
 </style>
 <div id="smelt-bar">
+  __NAV_HTML__
   <strong>__CAPTURE_ID__</strong> · group __GROUP__ · <a href="__URL__" target="_blank" rel="noreferrer">__URL_TEXT__</a><br>
   Click the banner root first, then any extra acceptable roots. Click a
   selected element again to remove it. When a wrong box covers the one you
@@ -123,6 +129,7 @@ const OVERLAY = `
   <input id="smelt-notes" size="30" placeholder="review notes">
   <button id="smelt-copy" type="button">Copy label JSON</button>
   <span id="smelt-selection"></span>
+  __PROPOSAL_HTML__
 </div>
 <div id="smelt-hover"></div>
 <pre id="smelt-json" hidden></pre>
@@ -389,6 +396,30 @@ const OVERLAY = `
               }
           });
 
+          // The teacher proposal outline is opt-in reference material. It
+          // never selects the element: the reviewer's clicks alone build
+          // the label.
+          var propButton = document.getElementById('smelt-prop-outline');
+          if (propButton) {
+              propButton.addEventListener('click', function () {
+                  var id = propButton.getAttribute('data-smelt-root');
+                  var nodes = document.querySelectorAll(
+                      '[data-smelt-replay-id="' + id + '"]');
+                  if (nodes.length === 0) {
+                      propButton.disabled = true;
+                      propButton.textContent = 'proposed root ' + id
+                          + ' is not on this page';
+                      return;
+                  }
+                  var on = !nodes[0].classList.contains('smelt-proposal-outline');
+                  for (var i = 0; i < nodes.length; i++) {
+                      nodes[i].classList.toggle('smelt-proposal-outline', on);
+                  }
+                  propButton.textContent = on ? 'Hide the proposed root outline'
+                      : 'Outline the proposed root';
+              });
+          }
+
           positionAll();
           // The bar grows when its text wraps or the viewport narrows, so
           // re-measure and re-place on bar and viewport size changes.
@@ -447,7 +478,73 @@ function neutralizeRemoteLoads(snapshot) {
     return clone;
 }
 
-function viewerPage(item, snapshot, features, metadata, labelStub) {
+// Teacher proposals are advisory reference material for the reviewer. The
+// reader keeps only the fields the panel shows, takes the last record per
+// capture (the same rule the proposals file documents for its consumers),
+// and skips the failure records a batch run writes without labels.
+async function readProposals(proposalsPath) {
+    const text = await readFile(proposalsPath, 'utf8');
+    const proposals = new Map();
+    for (const line of text.split('\n')) {
+        if (line.trim() === '') continue;
+        const record = JSON.parse(line);
+        if (!record || typeof record.capture_id !== 'string' || !record.labels) continue;
+        const root = typeof record.labels.banner_root === 'string'
+            && /^e[0-9]+$/.test(record.labels.banner_root)
+            ? record.labels.banner_root : null;
+        proposals.set(record.capture_id, {
+            adapterId: String(record.adapter?.id ?? record.adapterId ?? 'unknown'),
+            has_banner: record.labels.has_banner === true && root !== null,
+            banner_root: root,
+            banner_kind: String(record.labels.banner_kind ?? 'unknown'),
+            jurisdiction: String(record.labels.jurisdiction ?? 'unknown'),
+            confidence: record.labels.confidence ?? null,
+            status: String(record.verification?.status ?? 'unknown'),
+            issues: (record.verification?.issues ?? [])
+                .map(issue => String(issue?.code ?? 'issue'))
+        });
+    }
+    return proposals;
+}
+
+// Neighbor links keep the reviewer inside the pages; the index stays one
+// click away for the pending-first listing.
+function navHtml(nav) {
+    if (!nav) return '';
+    const parts = [];
+    if (nav.prev) parts.push(`<a href="${escapeHtml(nav.prev)}.html">&lsaquo; prev</a>`);
+    parts.push('<a href="index.html">index</a>');
+    if (nav.next) parts.push(`<a href="${escapeHtml(nav.next)}.html">next &rsaquo;</a>`);
+    return `  <div class="smelt-nav">${parts.join(' · ')}</div>\n`;
+}
+
+// The panel starts collapsed. The reviewer who wants an unbiased first
+// pass never opens it, and every specific answer stays inside.
+function proposalPanel(proposal) {
+    if (!proposal) return '';
+    const answer = proposal.has_banner
+        ? `yes — proposed root ${escapeHtml(proposal.banner_root)} `
+            + `(${escapeHtml(proposal.banner_kind)}), jurisdiction `
+            + `${escapeHtml(proposal.jurisdiction)}, confidence `
+            + `${escapeHtml(String(proposal.confidence ?? 'unknown'))}`
+        : 'no banner on this page';
+    const verification = proposal.issues.length > 0
+        ? `${escapeHtml(proposal.status)} — ${proposal.issues.map(escapeHtml).join(', ')}`
+        : escapeHtml(proposal.status);
+    return `  <details id="smelt-proposal">
+    <summary>Teacher proposal available — open to view (advisory only)</summary>
+    <div>has_banner: ${answer}</div>
+    <div>verification: ${verification}</div>
+    <div>adapter: ${escapeHtml(proposal.adapterId)} — a proposal never becomes
+    the label; your clicks decide.</div>
+    ${proposal.has_banner
+        ? `<button id="smelt-prop-outline" type="button" data-smelt-root="`
+            + `${escapeHtml(proposal.banner_root)}">Outline the proposed root</button>`
+        : ''}
+  </details>\n`;
+}
+
+function viewerPage(item, snapshot, features, metadata, labelStub, proposal, nav) {
     const html = snapshotToHtml(neutralizeRemoteLoads(snapshot));
     // The crawl recipe's jurisdiction wins; the egress location is the
     // fallback when the recipe recorded none or an unknown value.
@@ -466,7 +563,9 @@ function viewerPage(item, snapshot, features, metadata, labelStub) {
         __GROUP_JSON__: jsonLiteral(group),
         __JURISDICTION_JSON__: jsonLiteral(jurisdiction),
         __NOTES_JSON__: jsonLiteral(labelStub?.review_notes ?? ''),
-        __LAYOUT_JSON__: jsonData(layoutMap(features))
+        __LAYOUT_JSON__: jsonData(layoutMap(features)),
+        __NAV_HTML__: navHtml(nav),
+        __PROPOSAL_HTML__: proposalPanel(proposal)
     });
     const bodyEnd = html.lastIndexOf('</body>');
     requireValue(bodyEnd !== -1, `Snapshot has no body element: ${item.capture_id}`);
@@ -586,10 +685,14 @@ export async function buildReviewViewer(input) {
         && input.labelsDir.length > 0
         ? await readLabelStubs(input.labelsDir)
         : {stubs: new Map(), warnings: []};
+    const proposals = typeof input.proposalsPath === 'string'
+        && input.proposalsPath.length > 0
+        ? await readProposals(input.proposalsPath)
+        : new Map();
     const seen = new Set();
     await mkdir(outDir, {recursive: true});
     let pages = 0;
-    for (const item of items) {
+    for (const [index, item] of items.entries()) {
         requireValue(typeof item?.capture_id === 'string' && item.capture_id.length > 0,
             'Every queue item needs a capture_id.');
         requireValue(!seen.has(item.capture_id), `Duplicate queue capture: ${item.capture_id}`);
@@ -603,7 +706,9 @@ export async function buildReviewViewer(input) {
                 .catch(() => null)
         ]);
         await writeFile(path.join(outDir, `${item.capture_id}.html`),
-            viewerPage(item, snapshot, features, metadata, labelStubs.get(item.capture_id)));
+            viewerPage(item, snapshot, features, metadata, labelStubs.get(item.capture_id),
+                proposals.get(item.capture_id),
+                {prev: items[index - 1]?.capture_id, next: items[index + 1]?.capture_id}));
         pages++;
     }
     const indexPath = path.join(outDir, 'index.html');

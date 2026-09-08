@@ -463,3 +463,108 @@ test('label values cannot close the overlay script element', async () => {
         await rm(labelsDir, {recursive: true, force: true});
     }
 });
+
+test('pages link to their neighbors and the index', async () => {
+    const capturesDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-nav-'));
+    const outDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-nav-out-'));
+    try {
+        for (const id of ['first-page', 'middle-page', 'last-page']) {
+            await writeCapture(capturesDir, id, 'example.com', 'initial label');
+        }
+        await buildReviewViewer({
+            items: ['first-page', 'middle-page', 'last-page']
+                .map(capture_id => ({capture_id, group: 'example.com'})),
+            capturesDir,
+            outDir
+        });
+
+        const read = async id => readFile(resolve(outDir, `${id}.html`), 'utf8');
+        const first = await read('first-page');
+        const middle = await read('middle-page');
+        const last = await read('last-page');
+        assert.ok(first.includes('href="middle-page.html"'));
+        assert.ok(!first.includes('lsaquo; prev'));
+        assert.ok(middle.includes('href="first-page.html"'));
+        assert.ok(middle.includes('href="last-page.html"'));
+        assert.ok(last.includes('href="middle-page.html"'));
+        assert.ok(!last.includes('next &rsaquo;'));
+        for (const page of [first, middle, last]) {
+            assert.ok(page.includes('href="index.html"'));
+        }
+    } finally {
+        await rm(capturesDir, {recursive: true, force: true});
+        await rm(outDir, {recursive: true, force: true});
+    }
+});
+
+test('a proposals file renders a collapsed advisory panel', async () => {
+    const capturesDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-prop-'));
+    const outDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-prop-out-'));
+    try {
+        for (const id of ['pos-page', 'neg-page', 'none-page']) {
+            await writeCapture(capturesDir, id, 'example.com', 'initial label');
+        }
+        const proposalsPath = resolve(capturesDir, '..', 'proposals.jsonl');
+        await writeFile(resolve(outDir, '..', 'proposals.jsonl'), [
+            JSON.stringify({capture_id: 'pos-page',
+                adapter: {id: 'fake-teacher <lab>'},
+                labels: {has_banner: true, banner_root: 'e3', banner_kind: 'dialog',
+                    jurisdiction: 'eea', confidence: 0.9, evidence: []},
+                verification: {status: 'flag',
+                    issues: [{code: 'root-below-viewport'}, {code: 'truncated-input'}]}}),
+            JSON.stringify({capture_id: 'neg-page', adapter: {id: 'fake-teacher'},
+                labels: {has_banner: false, banner_root: null, banner_kind: 'unknown',
+                    jurisdiction: 'unknown', confidence: 0.8, evidence: []},
+                verification: {status: 'pass', issues: []}}),
+            // A failed batch record carries no proposal and must be skipped.
+            JSON.stringify({capture_id: 'none-page', adapterId: 'fake-teacher',
+                error: 'HTTP 503'}),
+            ''
+        ].join('\n'));
+        await buildReviewViewer({
+            items: ['pos-page', 'neg-page', 'none-page']
+                .map(capture_id => ({capture_id, group: 'example.com'})),
+            capturesDir,
+            outDir,
+            proposalsPath
+        });
+
+        const read = async id => readFile(resolve(outDir, `${id}.html`), 'utf8');
+        const positive = await read('pos-page');
+        assert.ok(positive.includes('<details id="smelt-proposal">'));
+        assert.ok(positive.includes('Teacher proposal available'));
+        assert.ok(positive.includes('data-smelt-root="e3"'));
+        assert.ok(positive.includes('root-below-viewport, truncated-input'));
+        // Proposal values are page-external strings and stay escaped.
+        assert.ok(!positive.includes('<lab>'));
+        assert.ok(positive.includes('&lt;lab&gt;'));
+
+        const negative = await read('neg-page');
+        assert.ok(negative.includes('no banner on this page'));
+        assert.ok(!negative.includes('data-smelt-root='));
+
+        const absent = await read('none-page');
+        assert.ok(!absent.includes('<details id="smelt-proposal">'));
+    } finally {
+        await rm(capturesDir, {recursive: true, force: true});
+        await rm(outDir, {recursive: true, force: true});
+        await rm(resolve(outDir, '..', 'proposals.jsonl'), {force: true});
+    }
+});
+
+test('a missing proposals file fails the build', async () => {
+    const capturesDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-prop-err-'));
+    const outDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-prop-err-out-'));
+    try {
+        await writeCapture(capturesDir, 'example-com-eu', 'example.com', 'initial label');
+        await assert.rejects(buildReviewViewer({
+            items: [{capture_id: 'example-com-eu', group: 'example.com'}],
+            capturesDir,
+            outDir,
+            proposalsPath: resolve(capturesDir, 'missing-proposals.jsonl')
+        }), /ENOENT/);
+    } finally {
+        await rm(capturesDir, {recursive: true, force: true});
+        await rm(outDir, {recursive: true, force: true});
+    }
+});

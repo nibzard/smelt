@@ -95,14 +95,22 @@ async function writeViewerPage(captureId, options = {}) {
         url: 'https://example.com/', egressLocation: 'eu-de-residential',
         targetMetadata: {expect: 'banner', jurisdiction: 'eea'}
     }));
+    let proposalsPath;
+    if (options.proposal) {
+        proposalsPath = resolve(outDir, '..', `proposals-${captureId}.jsonl`);
+        await writeFile(proposalsPath,
+            `${JSON.stringify({capture_id: captureId, ...options.proposal})}\n`);
+    }
     await buildReviewViewer({
         items: [{capture_id: captureId, group: 'example.com', reason: 'initial label'}],
         capturesDir,
-        outDir
+        outDir,
+        proposalsPath
     });
     return {pagePath: resolve(outDir, `${captureId}.html`), cleanup: async () => {
         await rm(capturesDir, {recursive: true, force: true});
         await rm(outDir, {recursive: true, force: true});
+        if (proposalsPath) await rm(proposalsPath, {force: true});
     }};
 }
 
@@ -188,13 +196,15 @@ test('browser: bar controls and blank-page clicks never change the selection', {
             await page.goto(`file://${pagePath}`);
             // Exercise every bar control, then click blank areas of the
             // page. The replayed <body> wraps everything and carries a
-            // marker, so a missing guard would select it here.
+            // marker, so a missing guard would select it here. The nav
+            // line at the top of the bar is interactive on purpose, so
+            // the bar click targets the capture title text instead.
             await page.selectOption('#smelt-kind', 'dialog');
             await page.selectOption('#smelt-jurisdiction', 'us');
             await page.selectOption('#smelt-confidence', '0.9');
             await page.fill('#smelt-notes', 'checked controls');
             await page.mouse.click(1100, 400);
-            await page.mouse.click(20, 10);
+            await page.click('#smelt-bar strong');
             const selected = await page.locator('#smelt-selection').textContent();
             assert.equal(selected.includes('roots:'), false);
 
@@ -312,6 +322,50 @@ test('browser: alt+click walks past a covering wrapped inline box',
 
             const label = await copiedLabel(page);
             assert.deepEqual(label.acceptable_roots, ['e2']);
+            assert.deepEqual(validateConsentLabels(datasetFor(label)), []);
+        } finally {
+            await browser.close();
+            await cleanup();
+        }
+    });
+
+test('browser: a teacher proposal outlines a root without selecting it',
+    {skip: !playwright}, async t => {
+        const {pagePath, cleanup} = await writeViewerPage('example-com-eu', {
+            proposal: {
+                adapter: {id: 'fake-teacher'},
+                labels: {has_banner: true, banner_root: 'e3', banner_kind: 'dialog',
+                    jurisdiction: 'eea', confidence: 0.9, evidence: []},
+                verification: {status: 'pass', issues: []}
+            }
+        });
+        const browser = await launchBrowser(t);
+        if (!browser) return void await cleanup();
+        try {
+            const page = await browser.newPage();
+            await page.goto(`file://${pagePath}`);
+            const panel = page.locator('#smelt-proposal');
+
+            // The panel starts collapsed, so an unbiased first pass never
+            // sees the teacher's answer.
+            assert.equal(await panel.getAttribute('open'), null);
+            await panel.locator('summary').click();
+
+            // Outlining the proposed root never selects it.
+            await page.click('#smelt-prop-outline');
+            assert.ok(await page.locator('[data-smelt-replay-id="e3"]')
+                .evaluate(node => node.classList.contains('smelt-proposal-outline')));
+            assert.equal(await page.locator('#smelt-selection').textContent(), '');
+
+            await page.click('#smelt-prop-outline');
+            assert.ok(!(await page.locator('[data-smelt-replay-id="e3"]')
+                .evaluate(node => node.classList.contains('smelt-proposal-outline'))));
+
+            // The copied record is the reviewer's own: no selection, no
+            // proposal fields, a clean negative.
+            const label = await copiedLabel(page);
+            assert.equal(label.has_banner, false);
+            assert.deepEqual(label.acceptable_roots, []);
             assert.deepEqual(validateConsentLabels(datasetFor(label)), []);
         } finally {
             await browser.close();

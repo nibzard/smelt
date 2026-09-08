@@ -23,7 +23,8 @@ try {
         items,
         capturesDir: option('captures', 'corpus/captures'),
         outDir: option('out', 'runs/review-viewer'),
-        labelsDir: option('labels', 'corpus/manifests/labels')
+        labelsDir: option('labels', 'corpus/manifests/labels'),
+        proposalsPath: option('proposals')
     });
     console.log(JSON.stringify({pages: result.pages, index: result.indexPath}));
 } catch (error) {
