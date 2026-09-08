@@ -131,6 +131,26 @@ renames, so an interrupted build never leaves fresh compact labels beside
 a stale manifest. The written manifest also drives the rules loop, which
 needs only the development role.
 
+## Review session runbook
+
+One pass over the queue, from a clean workspace to a training-ready
+manifest. Each command runs from the repository root.
+
+1. Regenerate the pages: `node packages/pilot/review-viewer-cli.mjs`
+   (add `--proposals` when a teacher proposals file exists).
+2. Open `runs/review-viewer/index.html`, then walk the queue with the
+   prev and next links. Click roots on each page and copy each record
+   into one JSON array file for the session.
+3. Apply the session file: `node packages/pilot/labels-apply.mjs
+   --records path/to/session.json --labels corpus/manifests/labels`.
+4. Check the result: `node packages/pilot/labels-doctor.mjs`. Fix what
+   it reports before continuing.
+5. Regenerate the viewer so the index counts the new progress, then
+   repeat from step 2 until the index shows zero remaining.
+6. Build the training manifest: `node packages/pilot/training-manifest.mjs
+   --out runs/training/manifest.json`. It refuses while any page is
+   unresolved, which is the intended stop.
+
 ## Review viewer
 
 `review:viewer` renders every queued capture as a standalone HTML page for
