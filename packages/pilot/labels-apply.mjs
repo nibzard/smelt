@@ -9,6 +9,7 @@
 // the replacement passes the same schema and semantic checks. Rejected
 // records never touch the file they targeted.
 
+import {Buffer} from 'node:buffer';
 import {copyFile, open, readFile, rename} from 'node:fs/promises';
 import path from 'node:path';
 
@@ -61,8 +62,9 @@ async function stageWrite(file, text) {
  * no wrapping array — the copied record is pretty-printed, so demanding
  * a hand-assembled array puts every paste accident back into the flow
  * this command exists to remove. Whitespace separates pasted values.
- * Anything else fails with the offset, so a torn paste or stray text is
- * named, never silently skipped.
+ * Anything else fails with the byte offset, so a torn paste or stray
+ * text is named, never silently skipped. Review notes hold non-ASCII
+ * text, so the offset counts file bytes, not UTF-16 code units.
  *
  * @arg {string} text File contents.
  * @returns {Array} The label records.
@@ -70,6 +72,7 @@ async function stageWrite(file, text) {
 export function parseRecords(text) {
     const records = [];
     let index = 0;
+    const byteOffset = () => Buffer.byteLength(text.slice(0, index), 'utf8');
     const skipSpace = () => {
         while (index < text.length && /\s/.test(text[index])) index += 1;
     };
@@ -77,8 +80,9 @@ export function parseRecords(text) {
     while (index < text.length) {
         const opener = text[index];
         if (opener !== '{' && opener !== '[') {
-            throw new SyntaxError(`Records file has unexpected content at offset `
-                + `${index}: ${JSON.stringify(text.slice(index, index + 20))}. Hold `
+            throw new SyntaxError(`Records file has unexpected content at byte `
+                + `offset ${byteOffset()}: `
+                + `${JSON.stringify(text.slice(index, index + 20))}. Hold `
                 + 'label records as objects pasted one after another, as a JSON '
                 + 'array, or as an object with a pages array.');
         }
@@ -111,15 +115,16 @@ export function parseRecords(text) {
         }
         if (end === -1) {
             throw new SyntaxError(`Records file holds an unfinished JSON value at `
-                + `offset ${index}: a value opens but never closes, so nothing was `
-                + 'applied. Check the last pasted record.');
+                + `byte offset ${byteOffset()}: it starts with `
+                + `${JSON.stringify(text.slice(index, index + 20))} and never `
+                + 'closes, so nothing was applied. Check the last pasted record.');
         }
         let value;
         try {
             value = JSON.parse(text.slice(index, end + 1));
         } catch (error) {
             throw new SyntaxError(`Records file holds an invalid JSON value at `
-                + `offset ${index}: ${error.message}`);
+                + `byte offset ${byteOffset()}: ${error.message}`);
         }
         const pages = Array.isArray(value) ? value : value?.pages;
         if (Array.isArray(pages)) {
@@ -129,8 +134,9 @@ export function parseRecords(text) {
             records.push(value);
         } else {
             throw new SyntaxError('Records file holds a value that is neither a '
-                + `label record nor a records array, at offset ${index}. Records `
-                + 'need an id field; batches need a pages array.');
+                + `label record nor a records array, at byte offset `
+                + `${byteOffset()}. Records need an id field; batches need a `
+                + 'pages array.');
         }
         index = end + 1;
         skipSpace();

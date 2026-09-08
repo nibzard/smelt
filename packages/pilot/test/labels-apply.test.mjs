@@ -336,18 +336,45 @@ test('parseRecords names torn pastes and stray content instead of skipping them'
     () => {
         const record = reviewedPage('a-eu', 'a.test');
         const pretty = JSON.stringify(record, null, 2);
-        // A last record missing its closing brace: the offset must point
-        // at the value that opens but never closes.
+        // A last record missing its closing brace: the message names the
+        // byte offset and quotes the value that opens but never closes.
         const torn = `${pretty}\n${pretty.slice(0, 40)}`;
-        assert.throws(() => parseRecords(torn), /unfinished JSON value at offset/);
+        assert.throws(() => parseRecords(torn), /unfinished JSON value at byte offset/);
         // Stray text between records is surfaced, never silently skipped.
         assert.throws(() => parseRecords(`${JSON.stringify(record)}\nbreak\n`),
-            /unexpected content at offset .*break/);
+            /unexpected content at byte offset .*break/);
         // Braces inside pasted strings must not end a value early; the
         // record carries braces and brackets in its notes.
         const braced = {...record, review_notes: 'has } and [ and " inside'};
         assert.equal(parseRecords(JSON.stringify(braced, null, 2)).length, 1);
     });
+
+test('parseRecords offsets count file bytes, not UTF-16 code units', () => {
+    const record = reviewedPage('a-eu', 'a.test');
+    // Review notes hold non-ASCII text, so a code-unit index and a byte
+    // offset differ: é takes two bytes, an emoji takes four bytes for
+    // two code units. The message must name the byte offset a reviewer
+    // can jump to in any editor or byte-oriented tool.
+    const noted = {...record, review_notes: 'bannière café trouvé 😀'};
+    const good = JSON.stringify(noted, null, 2);
+    const text = `${good}\nbreak\n`;
+    const byteAt = Buffer.byteLength(`${good}\n`, 'utf8');
+    const unitAt = `${good}\n`.length;
+    assert.ok(byteAt > unitAt, 'the fixture must make the two counts differ');
+    assert.throws(() => parseRecords(text),
+        new RegExp(`unexpected content at byte offset ${byteAt}`));
+    // The unfinished-value message quotes its content, so a reviewer can
+    // search for the excerpt when the number alone is not enough.
+    const torn = `${good}\n${good.slice(0, 40)}`;
+    const tornAt = Buffer.byteLength(good, 'utf8') + 1;
+    assert.throws(() => parseRecords(torn), error => {
+        assert.ok(error instanceof SyntaxError);
+        assert.match(error.message,
+            new RegExp(`unfinished JSON value at byte offset ${tornAt}`));
+        assert.match(error.message, /it starts with "/);
+        return true;
+    });
+});
 
 test('a pasted session file applies and the world stays doctor-clean', async () => {
     const world = await buildWorld();

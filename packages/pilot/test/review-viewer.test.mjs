@@ -592,7 +592,8 @@ test('torn and corrupt proposals lines do not sink the build', async () => {
         assert.ok(page.includes('<details id="smelt-proposal">'));
         assert.ok(page.includes('data-smelt-root="e3"'));
         assert.ok(!page.includes('no banner on this page'));
-        assert.deepEqual(result.proposals, {records: 1, unreadableLines: 2});
+        assert.deepEqual(result.proposals,
+            {records: 1, unreadableLines: 2, labellessLines: 0, matched: 1});
     } finally {
         await rm(capturesDir, {recursive: true, force: true});
         await rm(outDir, {recursive: true, force: true});
@@ -690,6 +691,33 @@ test('the CLI warns when a proposals file is unusable', async () => {
             JSON.stringify({capture_id: 'junk-page'}, null, 2));
         const pretty = await run(prettyPath);
         assert.match(pretty.stderr, /no readable proposals records/);
+        assert.match(pretty.stderr, /3 line\(s\) hold no valid JSON record/);
+
+        // An errors-only file is a correct JSONL file: a failed batch
+        // writes one error record per line. The warning must name that
+        // state, not prescribe a format the file already meets.
+        const failedPath = resolve(capturesDir, 'failed.jsonl');
+        await writeFile(failedPath, `${JSON.stringify({capture_id: 'junk-page',
+            adapterId: 'fake-teacher', error: 'HTTP 503', failedAt: 'now'})}\n`);
+        const failed = await run(failedPath);
+        assert.match(failed.stderr, /no readable proposals records/);
+        assert.match(failed.stderr,
+            /1 line\(s\) hold records without a proposal, the shape a failed batch writes/);
+
+        // An empty file is named as empty.
+        const emptyPath = resolve(capturesDir, 'empty.jsonl');
+        await writeFile(emptyPath, '');
+        const empty = await run(emptyPath);
+        assert.match(empty.stderr, /no readable proposals records/);
+        assert.match(empty.stderr, /the file holds no records at all/);
+
+        // A well-formed file from another queue renders zero panels too;
+        // the warning names the mismatch instead of staying silent.
+        const stalePath = resolve(capturesDir, 'stale.jsonl');
+        await writeFile(stalePath, `${validRecord().replace('junk-page', 'old-page')}\n`);
+        const stale = await run(stalePath);
+        assert.match(stale.stderr,
+            /none of the 1 proposals record\(s\) .* matches a capture in this queue/);
     } finally {
         await rm(capturesDir, {recursive: true, force: true});
         await rm(outDir, {recursive: true, force: true});

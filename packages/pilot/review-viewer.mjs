@@ -520,12 +520,14 @@ function neutralizeRemoteLoads(snapshot) {
 // or corrupt line is skipped, not fatal: the batch writer deliberately
 // keeps such lines on resume (it only adds a separator newline), so a
 // crash-recovered proposals file is a normal input here. The unreadable
-// line count travels back to the caller, so a wrong file format is a
-// warning instead of a silent zero-panel build.
+// and labelless line counts travel back to the caller, so a wrong file
+// format and a batch that produced no proposals are warnings instead of
+// a silent zero-panel build.
 async function readProposals(proposalsPath) {
     const text = await readFile(proposalsPath, 'utf8');
     const proposals = new Map();
     let unreadable = 0;
+    let labelless = 0;
     for (const line of text.split('\n')) {
         if (line.trim() === '') continue;
         let record;
@@ -535,7 +537,10 @@ async function readProposals(proposalsPath) {
             unreadable += 1;
             continue;
         }
-        if (!record || typeof record.capture_id !== 'string' || !record.labels) continue;
+        if (!record || typeof record.capture_id !== 'string' || !record.labels) {
+            labelless += 1;
+            continue;
+        }
         const root = typeof record.labels.banner_root === 'string'
             && /^e[0-9]+$/.test(record.labels.banner_root)
             ? record.labels.banner_root : null;
@@ -551,7 +556,7 @@ async function readProposals(proposalsPath) {
                 .map(issue => String(issue?.code ?? 'issue'))
         });
     }
-    return {proposals, unreadable};
+    return {proposals, unreadable, labelless};
 }
 
 // Neighbor links keep the reviewer inside the pages; the index stays one
@@ -737,7 +742,12 @@ export async function buildReviewViewer(input) {
     if (typeof input.proposalsPath === 'string' && input.proposalsPath.length > 0) {
         const read = await readProposals(input.proposalsPath);
         proposals = read.proposals;
-        proposalStats = {records: proposals.size, unreadableLines: read.unreadable};
+        // matched counts queue captures with a panel, so a well-formed
+        // file from another queue cannot pass for a normal no-proposal
+        // build. labelless counts parsed lines without a proposal, the
+        // shape a failed batch writes.
+        proposalStats = {records: proposals.size, unreadableLines: read.unreadable,
+            labellessLines: read.labelless, matched: 0};
     }
     const seen = new Set();
     await mkdir(outDir, {recursive: true});
@@ -755,9 +765,11 @@ export async function buildReviewViewer(input) {
                 .then(text => JSON.parse(text))
                 .catch(() => null)
         ]);
+        const proposal = proposals.get(item.capture_id);
+        if (proposal) proposalStats.matched += 1;
         await writeFile(path.join(outDir, `${item.capture_id}.html`),
             viewerPage(item, snapshot, features, metadata, labelStubs.get(item.capture_id),
-                proposals.get(item.capture_id),
+                proposal,
                 {prev: items[index - 1]?.capture_id, next: items[index + 1]?.capture_id}));
         pages++;
     }

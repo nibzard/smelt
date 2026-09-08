@@ -82,7 +82,8 @@ The records file holds the copied records pasted one after another —
 commas and a wrapping array are optional, because each copied record is
 pretty-printed and hand-assembly is where paste accidents live. A JSON
 array of records and an object with a `pages` array work too. A torn
-paste or stray text fails with the offset instead of skipping content.
+paste or stray text fails with the byte offset instead of skipping
+content.
 Each record replaces the page stub with the same `id`. A record is
 rejected when no split file holds that id, when its `group` disagrees with
 the labels file, or when the replacement would fail the schema or semantic
@@ -182,9 +183,11 @@ anything and never enters the copied record — your clicks alone build
 the label. Review the page first and open the panel when unsure. A torn
 or corrupt line in the proposals file is skipped: the file a crashed and
 resumed batch leaves behind still renders, and the last valid record per
-capture wins. The build prints a warning when the file holds unreadable
-lines, and another when it holds no readable record at all, so a wrong
-file cannot pass for a normal no-proposal build.
+capture wins. A file that yields no panels produces a warning that names
+the cause — junk lines for a wrong file format, error records for a
+batch that produced no proposals, an empty file, or records that match
+no capture in this queue — so a wrong file cannot pass for a normal
+no-proposal build.
 
 Each page rebuilds the top-frame DOM of the capture and positions every
 element at its captured rectangle, composed through nested ancestors. Hover

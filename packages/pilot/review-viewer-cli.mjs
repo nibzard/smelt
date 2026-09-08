@@ -35,15 +35,28 @@ try {
         labelsDir: option('labels', 'corpus/manifests/labels'),
         proposalsPath
     });
-    // A proposals file that exists but parses to nothing must not look
-    // like a normal no-proposal build. The wrong-file route (for example
-    // a pretty-printed JSON document) is a warning, because the pages
-    // still render; advisory panels alone go missing.
+    // A proposals file that exists but yields no panels must not look
+    // like a normal no-proposal build. Every warning names the cause:
+    // junk lines for a wrong file format, labelless lines for a batch
+    // that produced no proposals, nothing at all for an empty file, and
+    // zero matched captures for a file from another queue.
     if (result.proposals) {
         if (result.proposals.records === 0) {
+            const cause = result.proposals.unreadableLines > 0
+                ? `${result.proposals.unreadableLines} line(s) hold no valid `
+                    + 'JSON record'
+                : result.proposals.labellessLines > 0
+                    ? `${result.proposals.labellessLines} line(s) hold records `
+                        + 'without a proposal, the shape a failed batch writes'
+                    : 'the file holds no records at all';
             console.error(`Warning: no readable proposals records in `
-                + `${proposalsPath}. Every page renders without an advisory `
-                + 'panel. The file must hold one JSON record per line.');
+                + `${proposalsPath}: ${cause}. Every page renders without `
+                + 'an advisory panel.');
+        } else if (result.proposals.matched === 0) {
+            console.error(`Warning: none of the ${result.proposals.records} `
+                + `proposals record(s) in ${proposalsPath} matches a capture `
+                + 'in this queue. Every page renders without an advisory panel; '
+                + 'the file probably belongs to another queue.');
         } else if (result.proposals.unreadableLines > 0) {
             console.error(`Warning: skipped ${result.proposals.unreadableLines} `
                 + `unreadable proposals line(s) in ${proposalsPath}. Those `
