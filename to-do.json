@@ -625,7 +625,7 @@
       "id": "T020",
       "title": "Run the bounded rules agent loop",
       "priority": 2,
-      "status": "todo",
+      "status": "done",
       "details": "Implement and run the keep-or-discard loop that edits only rules.ts, respects cost and runtime limits, and compares against simpler baselines.",
       "steps": [
         "Create deterministic failure digests from results.jsonl.",
@@ -647,7 +647,15 @@
         "T017"
       ],
       "created_at": "2026-09-07T21:13:21Z",
-      "updated_at": "2026-09-07T21:13:21Z"
+      "updated_at": "2026-09-08T03:02:25.005Z",
+      "notes": [
+        "Implemented packages/consent-banners/loop.mjs and loop-cli.mjs: fixed gate order (safety, size, parity, latency, dev F1 ratchet with epsilon 0.005), stops at 40 consecutive discards, USD 40 cost cap, wall cap, 600 iterations.",
+        "Deterministic digest: per-page failures sorted by codepoint over nextAction then pageId, capped at 20 pages, snippet capped at 1200 chars, ancestor path at 8 parts, activations capped to declared rule names.",
+        "Safety gate is textual and rejects imports beyond the canonical runtime import, data: URLs, eval, Function, constructor, prototype access, computed string member access, network, process, and storage references; documented as a tripwire, not a sandbox (run real agents without egress).",
+        "createCommandAgent bridges claude -p --output-format json, unwraps the result envelope, clamps negative cost, and kills timed-out commands.",
+        "Verified end to end with the offline deterministic agent over three bundled Chromium fixture captures (runs/loop-demo.json, gitignored); 20 loop tests plus the full npm run verify suite pass.",
+        "A real LLM-driven run over the labeled corpus still waits on the T010 captures; the ratchet metric is the rules-baseline dev F1, and the linear/LightGBM comparison stays in the fixed trainer (T013)."
+      ]
     },
     {
       "id": "T021",

@@ -78,6 +78,56 @@ Each baseline reports accuracy, human effort, cost, and latency fields. Do not
 publish the report as release evidence until the grouped corpus and human labels
 exist.
 
+## The rules agent loop
+
+Run the bounded loop after the baselines (IDEA.md 3.2.1 through 3.2.7):
+
+```sh
+npm run loop --workspace @smelt-oss/consent-banners -- \
+  path/to/manifest.json runs/loop.json \
+  --command 'claude -p --output-format json'
+```
+
+The manifest carries only the `development` split, because scoring during the
+loop uses dev data only and the frozen test set stays physically absent. The
+`--command` agent receives `{digest, rulesSource, program}` on stdin and prints
+JSON with at least `{source}`; pass `--program` to include the task program.
+The offline agent `packages/consent-banners/scripts/offline-agent.mjs` runs the
+same contract without an API key.
+
+Each iteration gates the candidate in fixed order before the ratchet:
+
+1. Safety: no imports (the runner prepends the runtime itself), no network,
+   filesystem, `eval`, `Function`, `constructor`, or prototype access; at most
+   200 rules and 1,000 lines.
+2. Size: under 15,360 bytes gzipped.
+3. Latency: under 200 ms per page on the frozen-snapshot replay.
+4. Dev F1: at least `epsilon` (0.005) above the incumbent. A wrong root counts
+   as both a false positive and a false negative, and thresholds are selected
+   on development data only.
+
+The ratchet keeps nothing until the browser-versus-Node parity fixture holds
+(`--no-parity` records a failing parity gate). The loop stops after 40
+consecutive discards, `$40` of reported agent cost, the wall clock cap, or 600
+iterations. The experiment log records every iteration with the diff, the gate
+results, the usage, the cost, and the verdict, plus the winning rules hash and
+source when an iteration was kept. `--rules-out` writes the winning source for
+human review; nothing is applied to `rules.mjs` automatically.
+
+An offline demonstration over the bundled fixture captures (real Chromium
+captures, three pages) runs the loop end to end: the shipped rules already
+reach dev F1 1.0 there, so honest iterations that do not beat the incumbent are
+discarded by the ratchet, and an unsafe edit is rejected by the safety gate. A
+real agent-driven run over the labeled corpus still waits on the T010 captures.
+
+The textual safety gate is a tripwire, not a sandbox. It reads the candidate
+source before anything imports it, but a determined module can disguise a
+forbidden reference. The runner does not add network or filesystem isolation
+of its own; run real agent sessions inside a sandbox that blocks egress.
+Paths in the CLI are relative as follows: `--program` resolves against the
+manifest directory, and the log, `--rules-out`, and `--command` paths resolve
+against the working directory.
+
 ## Steel workflow metrics
 
 Measure the current workflow baseline on the matched pilot case set before any

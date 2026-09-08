@@ -88,3 +88,21 @@ signal. Every record carries the vendor, model ID, terms version, written
 no-competition rationale, prompt version, prompt hash, token usage, and
 measured cost. Reject or flag records in `verification.issues` for human
 review; answers built from a truncated serialization are always flagged.
+
+## Rules agent loop
+
+Run the bounded keep-or-discard loop that edits only `rules.mjs`:
+
+```sh
+npm run loop --workspace @smelt-oss/consent-banners -- \
+  path/to/manifest.json runs/loop.json \
+  --command 'node packages/consent-banners/scripts/offline-agent.mjs'
+```
+
+The command receives `{digest, rulesSource, program}` on stdin and prints JSON
+with at least `{source}`. The manifest needs only the `development` split. The
+loop gates every candidate (safety, size, latency, dev F1), ratchets with an
+epsilon of 0.005, stops at 40 consecutive discards or `$40` of reported cost,
+and writes an experiment log with the diff, gate results, usage, and verdict
+for every iteration. Nothing touches `rules.mjs` automatically; use
+`--rules-out` to export a winning source for human review.

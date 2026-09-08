@@ -13,10 +13,12 @@
     "./model": "./model.mjs",
     "./model.smelt.json": "./model.smelt.json",
     "./train": "./train.mjs",
-    "./teacher": "./teacher.mjs"
+    "./teacher": "./teacher.mjs",
+    "./loop": "./loop.mjs"
   },
   "bin": {
-    "smelt-consent-bench": "./bench-cli.mjs"
+    "smelt-consent-bench": "./bench-cli.mjs",
+    "smelt-consent-loop": "./loop-cli.mjs"
   },
   "files": [
     "README.md",
@@ -30,13 +32,16 @@
     "schemas/model.schema.json",
     "train.mjs",
     "train-cli.mjs",
-    "teacher.mjs"
+    "teacher.mjs",
+    "loop.mjs",
+    "loop-cli.mjs"
   ],
   "scripts": {
     "bench": "node bench-cli.mjs",
     "size": "node scripts/size.mjs",
     "test": "node --test",
-    "train": "node train-cli.mjs"
+    "train": "node train-cli.mjs",
+    "loop": "node loop-cli.mjs"
   },
   "engines": {
     "node": ">=20"
