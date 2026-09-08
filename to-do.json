@@ -977,7 +977,7 @@
       "id": "T031",
       "title": "Register release handles and recheck namespace claims",
       "priority": 2,
-      "status": "todo",
+      "status": "in_progress",
       "details": "Register the smelt-oss GitHub organization and @smelt-oss npm scope before first publish, and recheck all recorded registry names on publish day.",
       "steps": [
         "Recheck npm, PyPI, GitHub, and domain records with direct lookups.",
@@ -998,7 +998,16 @@
         "T023"
       ],
       "created_at": "2026-09-07T21:13:21Z",
-      "updated_at": "2026-09-07T21:13:21Z"
+      "updated_at": "2026-09-08T10:05:00Z",
+      "blockers": [
+        "Registering the smelt-oss GitHub organization and the @smelt-oss npm scope needs a project owner with GitHub and npm account credentials. No agent in this workspace can create accounts or organizations."
+      ],
+      "notes": [
+        "2026-09-08: rechecked every handle from decision 0002 with direct lookups. All claims still hold: npm @smelt-oss/core and @smelt-oss/runtime 404 (free), npm smelt-web 404, PyPI smelt-train and smelt-web 404, GitHub org and user smelt-oss 404, RDAP getsmelt.org and smeltml.org 404.",
+        "Neighbor moved: npm @smeltjs/core is now 0.6.0 (was 0.4.0), modified 2026-09-07; smeltjs/smelt pushed 2026-09-07. Decision 0002 already names this neighbor on the disambiguation page, so no decision change follows.",
+        "Method caveat for the publish-day recheck: the npm couchdb user/org endpoint now answers 401 (auth-gated) instead of the 404 recorded on 2026-09-06. Use direct package GETs on @smelt-oss%2Fname as the availability signal, as decision 0002 method note already prescribes.",
+        "No new decision record: the decision-relevant facts (our handles all free) are unchanged, so T031 step 3 does not apply."
+      ]
     },
     {
       "id": "T032",
