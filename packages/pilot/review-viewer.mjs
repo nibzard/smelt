@@ -519,10 +519,12 @@ function neutralizeRemoteLoads(snapshot) {
 // and skips the failure records a batch run writes without labels. A torn
 // or corrupt line is skipped, not fatal: the batch writer deliberately
 // keeps such lines on resume (it only adds a separator newline), so a
-// crash-recovered proposals file is a normal input here. The unreadable
-// and labelless line counts travel back to the caller, so a wrong file
-// format and a batch that produced no proposals are warnings instead of
-// a silent zero-panel build.
+// crash-recovered proposals file is a normal input here. A line that
+// parses to a scalar, null, or an array is junk, the same as an
+// unparseable line: only an object can hold a proposal record. The
+// unreadable and labelless line counts travel back to the caller, so a
+// wrong file format and a batch that produced no proposals are warnings
+// instead of a silent zero-panel build.
 async function readProposals(proposalsPath) {
     const text = await readFile(proposalsPath, 'utf8');
     const proposals = new Map();
@@ -537,7 +539,11 @@ async function readProposals(proposalsPath) {
             unreadable += 1;
             continue;
         }
-        if (!record || typeof record.capture_id !== 'string' || !record.labels) {
+        if (record === null || typeof record !== 'object' || Array.isArray(record)) {
+            unreadable += 1;
+            continue;
+        }
+        if (typeof record.capture_id !== 'string' || !record.labels) {
             labelless += 1;
             continue;
         }

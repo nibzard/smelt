@@ -46,8 +46,9 @@ try {
                 ? `${result.proposals.unreadableLines} line(s) hold no valid `
                     + 'JSON record'
                 : result.proposals.labellessLines > 0
-                    ? `${result.proposals.labellessLines} line(s) hold records `
-                        + 'without a proposal, the shape a failed batch writes'
+                    ? `${result.proposals.labellessLines} line(s) hold objects `
+                        + 'with no labels, like the error records a failed '
+                        + 'batch writes'
                     : 'the file holds no records at all';
             console.error(`Warning: no readable proposals records in `
                 + `${proposalsPath}: ${cause}. Every page renders without `

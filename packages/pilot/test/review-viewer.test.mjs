@@ -635,8 +635,38 @@ test('a proposals file with no readable records reports zero, not silence', asyn
     }
 });
 
-test('a missing proposals file fails the build', async () => {
-    const capturesDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-prop-err-'));
+test('scalar lines count as junk; objects without labels count as batch records', async () => {
+    const capturesDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-split-'));
+    const outDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-split-out-'));
+    const proposalsPath = resolve(outDir, '..', 'split-causes.jsonl');
+    try {
+        await writeCapture(capturesDir, 'split-page', 'example.com', 'initial label');
+        // The warning buckets must match what each line is: a scalar is
+        // junk from a wrong file format; an object with no labels is the
+        // error-record shape a failed batch writes.
+        await writeFile(proposalsPath, [
+            '42',
+            JSON.stringify({capture_id: 'split-page', adapterId: 'fake-teacher',
+                error: 'HTTP 503', failedAt: 'now'}),
+            ''
+        ].join('\n'));
+        const result = await buildReviewViewer({
+            items: [{capture_id: 'split-page', group: 'example.com'}],
+            capturesDir,
+            outDir,
+            proposalsPath
+        });
+
+        assert.deepEqual(result.proposals,
+            {records: 0, unreadableLines: 1, labellessLines: 1, matched: 0});
+    } finally {
+        await rm(capturesDir, {recursive: true, force: true});
+        await rm(outDir, {recursive: true, force: true});
+        await rm(proposalsPath, {force: true});
+    }
+});
+
+test('a missing proposals file fails the build', async () => {    const capturesDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-prop-err-'));
     const outDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-prop-err-out-'));
     try {
         await writeCapture(capturesDir, 'example-com-eu', 'example.com', 'initial label');
@@ -702,7 +732,16 @@ test('the CLI warns when a proposals file is unusable', async () => {
         const failed = await run(failedPath);
         assert.match(failed.stderr, /no readable proposals records/);
         assert.match(failed.stderr,
-            /1 line\(s\) hold records without a proposal, the shape a failed batch writes/);
+            /1 line\(s\) hold objects with no labels, like the error records/);
+
+        // Lines that parse to scalars, null, or arrays are junk from a
+        // wrong file format, not batch records; calling them the failed
+        // batch shape was false.
+        const scalarPath = resolve(capturesDir, 'scalars.jsonl');
+        await writeFile(scalarPath, '42\n"hello"\nnull\n[1]\n');
+        const scalars = await run(scalarPath);
+        assert.match(scalars.stderr, /no readable proposals records/);
+        assert.match(scalars.stderr, /4 line\(s\) hold no valid JSON record/);
 
         // An empty file is named as empty.
         const emptyPath = resolve(capturesDir, 'empty.jsonl');
