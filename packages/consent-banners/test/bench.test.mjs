@@ -8,7 +8,8 @@ import {tmpdir} from 'node:os';
 import {resolve} from 'node:path';
 import {test} from 'node:test';
 
-import {PROBE_SETS, readBenchManifest, summarizeLatency} from '../bench.mjs';
+import {PROBE_SETS, readBenchManifest, replayableElements, summarizeLatency}
+    from '../bench.mjs';
 
 test('summarizes repeated-call latency with p50 and p95', () => {
     const summary = summarizeLatency([10, 2, 8, 4, 6]);
@@ -52,3 +53,32 @@ test('loads a named benchmark probe set from a manifest', async () => {
         await rm(dir, {recursive: true, force: true});
     }
 });
+
+test('replayableElements keeps the top frame and drops other frame documents',
+    () => {
+        // A multi-frame snapshot: the top document under rootElementId plus
+        // one frame document that an HTML parse cannot rebuild.
+        const snapshot = {
+            schemaVersion: 1,
+            rootElementId: 'e0',
+            frames: [{id: 'f0'}, {id: 'f1'}],
+            elements: [
+                {id: 'e0', tagName: 'html', textSample: '', attributes: {},
+                    children: ['e1', 'e2']},
+                {id: 'e1', tagName: 'body', textSample: '', attributes: {},
+                    children: ['e3']},
+                {id: 'e2', tagName: 'head', textSample: '', attributes: {},
+                    children: []},
+                {id: 'e3', tagName: 'br', textSample: '', attributes: {}, children: []},
+                {id: 'e4', tagName: 'html', textSample: '', attributes: {},
+                    children: ['e5']},
+                {id: 'e5', tagName: 'body', textSample: 'frame', attributes: {},
+                    children: []}
+            ]
+        };
+
+        const ordered = replayableElements(snapshot);
+
+        assert.deepEqual(ordered.map(element => element.id), ['e0', 'e1', 'e3', 'e2']);
+        assert.ok(!ordered.some(element => element.id === 'e4' || element.id === 'e5'));
+    });

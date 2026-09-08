@@ -6,6 +6,16 @@ import {parseHTML} from 'linkedom';
 
 const SKIPPED_TAGS = new Set(['script', 'noscript', 'style', 'template']);
 
+// HTML void elements have no closing tag. Writing one makes the parser
+// add a second, phantom element and breaks replay parity.
+const VOID_TAGS = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img',
+    'input', 'link', 'meta', 'param', 'source', 'track', 'wbr']);
+
+// Every replayed element carries its snapshot ID, so alignment works by
+// identity. The HTML parser relocates elements that scripts moved into
+// parser-illegal positions, which breaks alignment by position.
+export const REPLAY_ID_ATTRIBUTE = 'data-smelt-replay-id';
+
 function escapeText(value) {
     return String(value ?? '')
         .replace(/&/g, '&amp;')
@@ -46,32 +56,76 @@ function elementIndexes(snapshot, features) {
 function serializeElement(element, snapshotById) {
     if (SKIPPED_TAGS.has(element.tagName)) return '';
     const attrs = Object.entries(element.attributes ?? {})
+        // A captured page may already carry our marker name. Drop it: the
+        // HTML parser keeps the first of two same-named attributes, so a
+        // page-supplied value would shadow the real snapshot ID.
+        .filter(([name]) => name !== REPLAY_ID_ATTRIBUTE)
         .map(([name, value]) => ` ${name}="${escapeAttribute(value)}"`)
         .join('');
+    const marker = ` ${REPLAY_ID_ATTRIBUTE}="${escapeAttribute(element.id)}"`;
+    if (VOID_TAGS.has(element.tagName)) return `<${element.tagName}${attrs}${marker}>`;
     const children = element.children
         .map(id => serializeElement(snapshotById.get(id), snapshotById))
         .join('');
-    return `<${element.tagName}${attrs}>${escapeText(element.textSample)}${children}</${element.tagName}>`;
+    return `<${element.tagName}${attrs}${marker}>${escapeText(element.textSample)}${children}</${element.tagName}>`;
 }
 
-function elementsInDocumentOrder(doc) {
-    return Array.from(doc.querySelectorAll('*'));
+/**
+ * List the elements a replay can rebuild, in traversal order.
+ *
+ * A snapshot can hold several frame documents, but an HTML parse keeps only
+ * the document under ``rootElementId``, the top frame. Skipped tags and
+ * their subtrees are not serialized, so they stay out of the list too. The
+ * full element set stays in the snapshot file, untouched.
+ *
+ * @arg snapshot {object} A Smelt snapshot file
+ * @return {Array<object>} The replayable elements, in traversal order
+ */
+export function replayableElements(snapshot) {
+    const byId = new Map(snapshot.elements.map(element => [element.id, element]));
+    const ordered = [];
+    const visit = id => {
+        const element = byId.get(id);
+        if (element === undefined) {
+            throw new Error(`Snapshot element "${id}" is missing.`);
+        }
+        if (SKIPPED_TAGS.has(element.tagName)) return;
+        ordered.push(element);
+        // Void elements are serialized without children, so their children
+        // cannot replay. Skip them here to match the serializer.
+        if (VOID_TAGS.has(element.tagName)) return;
+        for (const child of element.children ?? []) visit(child);
+    };
+    visit(snapshot.rootElementId);
+    return ordered;
 }
 
-function alignSnapshotElements(doc, snapshot) {
-    const elements = elementsInDocumentOrder(doc);
-    if (elements.length !== snapshot.elements.length) {
-        throw new Error(`Replayed DOM has ${elements.length} elements, but the snapshot has ${snapshot.elements.length}.`);
-    }
+// The HTML parser inserts elements the snapshot never held: a phantom empty
+// <p> when a serialized <p> holds block children, or a <tbody> around bare
+// <tr> rows. Real captures contain such pages, so replay counts these
+// foreign elements instead of refusing the page. Callers surface the count.
+function phantomElements(doc, elementsById) {
+    const replayed = new Set(elementsById.values());
+    return Array.from(doc.querySelectorAll('*'))
+        .filter(element => !replayed.has(element));
+}
 
+function alignSnapshotElements(doc, orderedElements) {
     const elementsById = new Map();
-    for (let i = 0; i < snapshot.elements.length; i++) {
-        const expected = snapshot.elements[i];
-        const actual = elements[i];
+    for (const element of doc.querySelectorAll(`[${REPLAY_ID_ATTRIBUTE}]`)) {
+        elementsById.set(element.getAttribute(REPLAY_ID_ATTRIBUTE), element);
+    }
+    if (elementsById.size !== orderedElements.length) {
+        throw new Error(`Replayed DOM holds ${elementsById.size} marked elements, but the snapshot root holds ${orderedElements.length}. The HTML parser dropped or duplicated elements.`);
+    }
+    for (const expected of orderedElements) {
+        const actual = elementsById.get(expected.id);
+        if (actual === undefined) {
+            throw new Error(`Replayed element "${expected.id}" is missing from the parsed document.`);
+        }
         if (actual.tagName.toLowerCase() !== expected.tagName) {
             throw new Error(`Replayed element "${expected.id}" expected <${expected.tagName}> but found <${actual.tagName.toLowerCase()}>.`);
         }
-        elementsById.set(expected.id, actual);
     }
     return elementsById;
 }
@@ -104,24 +158,41 @@ function styleFromLayout(layout) {
 }
 
 /**
- * Build a linkedom document from a stripped Smelt snapshot.
+ * Serialize the top-frame document of a snapshot to HTML.
  *
- * The returned ``elementsById`` map links snapshot IDs to replay DOM elements.
+ * Every serialized element carries its snapshot ID in a data attribute, so
+ * two parsers of the same string can be aligned by identity.
  *
  * @arg snapshot {object} A Smelt snapshot file
- * @arg features {object} The matching feature file
- * @return {{document: Document, elementsById: Map<string, Element>}}
+ * @return {string} The HTML document for the top frame
  */
-export function documentFromSnapshot(snapshot, features) {
-    assertVersion(snapshot, features);
-    const {snapshotById} = elementIndexes(snapshot, features);
+export function snapshotToHtml(snapshot) {
+    const snapshotById = new Map(snapshot.elements.map(element => [element.id, element]));
     const root = snapshotById.get(snapshot.rootElementId);
     if (root === undefined) {
         throw new Error(`Snapshot root element "${snapshot.rootElementId}" is missing.`);
     }
+    return `<!doctype html>${serializeElement(root, snapshotById)}`;
+}
 
-    const {document} = parseHTML(`<!doctype html>${serializeElement(root, snapshotById)}`);
-    return {document, elementsById: alignSnapshotElements(document, snapshot)};
+/**
+ * Build a linkedom document from a stripped Smelt snapshot.
+ *
+ * The returned ``elementsById`` map links snapshot IDs to replay DOM elements.
+ * ``phantomCount`` counts elements the HTML parser inserted although the
+ * snapshot never held them.
+ *
+ * @arg snapshot {object} A Smelt snapshot file
+ * @arg features {object} The matching feature file
+ * @return {{document: Document, elementsById: Map<string, Element>,
+ *     phantomCount: number}}
+ */
+export function documentFromSnapshot(snapshot, features) {
+    assertVersion(snapshot, features);
+    elementIndexes(snapshot, features);
+    const {document} = parseHTML(snapshotToHtml(snapshot));
+    const elementsById = alignSnapshotElements(document, replayableElements(snapshot));
+    return {document, elementsById, phantomCount: phantomElements(document, elementsById).length};
 }
 
 /**
@@ -136,7 +207,8 @@ export function documentFromSnapshot(snapshot, features) {
  * @arg elementsById {Map<string, Element>} Optional existing snapshot ID map
  * @return {Map<string, Element>} Snapshot IDs mapped to patched elements
  */
-export function installFrozenLayout(doc, snapshot, features, elementsById = alignSnapshotElements(doc, snapshot)) {
+export function installFrozenLayout(doc, snapshot, features,
+    elementsById = alignSnapshotElements(doc, replayableElements(snapshot))) {
     assertVersion(snapshot, features);
     const {featureById} = elementIndexes(snapshot, features);
     const styleByElement = new WeakMap();
@@ -180,6 +252,9 @@ export function installFrozenLayout(doc, snapshot, features, elementsById = alig
 function vectorsFor(run, elementsById, ids, vector) {
     const ret = {};
     for (const id of ids) {
+        if (!elementsById.has(id)) {
+            throw new Error(`Element "${id}" is not in the replayable top frame. Pass only ids from replayableElements(snapshot).`);
+        }
         ret[id] = vector(run.get(elementsById.get(id)), id);
     }
     return ret;
@@ -191,6 +266,12 @@ function vectorsFor(run, elementsById, ids, vector) {
  * The ``vector`` callback receives a fnode and its snapshot ID. It must return
  * JSON-stable data, such as the feature vector used by a trainer fixture.
  *
+ * By default both sides are replayed documents and the comparison only checks
+ * the replay itself. Pass ``browserElementsById`` for a genuine browser-versus-
+ * Node comparison: a map from snapshot ID to the element in ``browserDocument``
+ * that the capture saw. Such a document is the live page or a linkedom parse
+ * of the original markup, so it carries no replay markers.
+ *
  * @arg options {object} Parity options
  * @return {{browser: object, node: object, equal: boolean}}
  */
@@ -200,17 +281,18 @@ export function compareFrozenReplay(options) {
         browserDocument,
         snapshot,
         features,
-        ids = snapshot.elements.map(element => element.id),
+        ids = replayableElements(snapshot).map(element => element.id),
         vector,
-        runOptions
+        runOptions,
+        browserElementsById
     } = options;
     if (typeof vector !== 'function') {
         throw new Error('compareFrozenReplay() requires a vector callback.');
     }
 
-    const browserElementsById = installFrozenLayout(browserDocument, snapshot, features);
+    const browserIds = browserElementsById ?? installFrozenLayout(browserDocument, snapshot, features);
     const browserRun = ruleset.against(browserDocument, runOptions);
-    const browser = vectorsFor(browserRun, browserElementsById, ids, vector);
+    const browser = vectorsFor(browserRun, browserIds, ids, vector);
     const replay = documentFromSnapshot(snapshot, features);
     installFrozenLayout(replay.document, snapshot, features, replay.elementsById);
     const nodeRun = ruleset.against(replay.document, runOptions);

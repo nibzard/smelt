@@ -7,7 +7,10 @@ import {test} from 'node:test';
 import {parseHTML} from 'linkedom';
 
 import {captureFrozenSnapshot} from '../index.mjs';
-import {compareFrozenReplay, runFrozenSnapshot} from '../replay.mjs';
+import {
+    compareFrozenReplay, replayableElements, REPLAY_ID_ATTRIBUTE, runFrozenSnapshot,
+    snapshotToHtml
+} from '../replay.mjs';
 import {dom, rule, ruleset, type, utils} from '../../runtime/index.mjs';
 
 function parse(html) {
@@ -67,6 +70,13 @@ function vectorFor(fnode) {
     const style = fnode.element.ownerDocument.defaultView.getComputedStyle(fnode.element);
     return {
         id: fnode.element.id,
+        tagName: fnode.element.tagName.toLowerCase(),
+        // Capture normalizes each text sample and trims it, so a space at
+        // the boundary between parent text and a child element does not
+        // survive replay. Compare text without whitespace; spaces inside
+        // one sample do survive. Detector vectors read no text.
+        textContent: fnode.element.textContent.replace(/\s+/g, ''),
+        className: fnode.element.getAttribute('class') ?? '',
         rect: {x: rect.x, y: rect.y, width: rect.width, height: rect.height},
         position: style.position,
         zIndex: style.zIndex,
@@ -121,16 +131,178 @@ test('compareFrozenReplay returns exact vectors for layout rules', () => {
         .filter(element => ['content', 'banner', 'accept'].includes(element.attributes.id))
         .map(element => element.id);
 
+    // The browser side is the original document the capture saw, not a parse
+    // of the replay serialization. Map snapshot IDs to its elements through
+    // the DOM id attribute, so the comparison stays browser versus Node.
+    const byDomId = new Map(Array.from(doc.querySelectorAll('[id]'), element => [element.id, element]));
+    const browserElementsById = new Map();
+    for (const element of snapshot.elements) {
+        const domId = element.attributes?.id;
+        if (domId !== undefined && byDomId.has(domId)) {
+            browserElementsById.set(element.id, byDomId.get(domId));
+        }
+    }
+
     const parity = compareFrozenReplay({
         ruleset: geometryRules(),
         browserDocument: doc,
         snapshot,
         features,
         ids,
-        vector: vectorFor
+        vector: vectorFor,
+        browserElementsById
     });
 
     assert.equal(parity.equal, true);
     assert.deepEqual(parity.node, parity.browser);
     assert.equal(parity.node[ids[1]].scores.fixed, 10);
+});
+
+test('replay handles void elements without phantom duplicates', () => {
+    const doc = parse(`
+        <html><body>
+            <main id="page">
+                <p id="content">Read more<br>now</p>
+                <img id="art" src="/art.png" alt="">
+            </main>
+        </body></html>
+    `);
+    stubBrowserLayout(doc);
+    const {snapshot, features} = captureFrozenSnapshot(doc, {
+        captureId: 'void-parity',
+        capturedAt: '2026-09-08T10:30:00Z',
+        viewport: {width: 1200, height: 900, deviceScaleFactor: 1}
+    });
+
+    const replay = runFrozenSnapshot(geometryRules(), snapshot, features);
+    // One <br> and one <img> in the snapshot must stay one each in replay.
+    assert.equal(replay.document.querySelectorAll('br').length, 1);
+    assert.equal(replay.document.querySelectorAll('img').length, 1);
+    assert.equal(replay.elementsById.size, replayableElements(snapshot).length);
+});
+
+test('replay drops a page-supplied marker attribute before writing its own', () => {
+    const doc = parse(`
+        <html><body>
+            <main id="page">
+                <div id="content" data-smelt-replay-id="stray">Article</div>
+                <div id="banner" role="dialog" data-smelt-replay-id="x2">Cookies
+                    <button id="accept" data-smelt-replay-id="x1">Accept</button>
+                </div>
+            </main>
+        </body></html>
+    `);
+    stubBrowserLayout(doc);
+    const {snapshot, features} = captureFrozenSnapshot(doc, {
+        captureId: 'marker-collision',
+        capturedAt: '2026-09-08T11:00:00Z',
+        viewport: {width: 1200, height: 900, deviceScaleFactor: 1}
+    });
+
+    // The page carries stray and cross-referencing marker values. The
+    // serializer must drop them, so no replayed element aligns to a lie.
+    const html = snapshotToHtml(snapshot);
+    assert.ok(!html.includes('"stray"'));
+    assert.ok(!html.includes('"x1"'));
+    assert.ok(!html.includes('"x2"'));
+
+    const replay = runFrozenSnapshot(geometryRules(), snapshot, features);
+    const bannerId = snapshot.elements.find(element => element.attributes.id === 'banner').id;
+    const acceptId = snapshot.elements.find(element => element.attributes.id === 'accept').id;
+    assert.equal(replay.elementsById.get(bannerId)
+        .getAttribute(REPLAY_ID_ATTRIBUTE), bannerId);
+    assert.equal(replay.elementsById.get(acceptId)
+        .getAttribute(REPLAY_ID_ATTRIBUTE), acceptId);
+    assert.ok(replay.elementsById.get(acceptId).textContent.includes('Accept'));
+});
+
+test('replay counts parser-inserted phantom elements', () => {
+    const doc = parse('<html><body><main id="page"></main></body></html>');
+    // A script-built, parser-illegal shape: a block element inside a <p>.
+    const paragraph = doc.createElement('p');
+    paragraph.id = 'content';
+    const box = doc.createElement('div');
+    box.id = 'box';
+    box.textContent = 'Moved by script';
+    paragraph.appendChild(box);
+    doc.getElementById('page').appendChild(paragraph);
+    stubBrowserLayout(doc);
+    const {snapshot, features} = captureFrozenSnapshot(doc, {
+        captureId: 'phantom-count',
+        capturedAt: '2026-09-08T11:00:00Z',
+        viewport: {width: 1200, height: 900, deviceScaleFactor: 1}
+    });
+
+    // The replayed <p> and <div> stay marked and aligned; the parser's
+    // extra empty <p> is counted, not treated as a failure.
+    const replay = runFrozenSnapshot(geometryRules(), snapshot, features);
+    assert.equal(replay.phantomCount, 1);
+    assert.equal(replay.document.querySelectorAll('p').length, 2);
+});
+
+test('compareFrozenReplay rejects ids from other frame documents', () => {
+    const doc = parse(`
+        <html><body>
+            <main id="page">
+                <div id="banner" role="dialog">Cookies</div>
+            </main>
+        </body></html>
+    `);
+    stubBrowserLayout(doc);
+    const {snapshot, features} = captureFrozenSnapshot(doc, {
+        captureId: 'frame-guard',
+        capturedAt: '2026-09-08T11:00:00Z',
+        viewport: {width: 1200, height: 900, deviceScaleFactor: 1}
+    });
+    const frameBanner = 'frame-element-banner';
+    const browserDocument = parseHTML(snapshotToHtml(snapshot)).document;
+    stubBrowserLayout(browserDocument);
+
+    assert.throws(() => compareFrozenReplay({
+        ruleset: geometryRules(),
+        browserDocument,
+        snapshot,
+        features,
+        ids: [frameBanner],
+        vector: vectorFor
+    }), /is not in the replayable top frame/);
+});
+
+test('replay ignores other frame documents in the snapshot', () => {
+    const doc = parse(`
+        <html><body>
+            <main id="page">
+                <div id="banner" role="dialog">Cookies</div>
+            </main>
+        </body></html>
+    `);
+    stubBrowserLayout(doc);
+    const {snapshot, features} = captureFrozenSnapshot(doc, {
+        captureId: 'frame-parity',
+        capturedAt: '2026-09-08T10:30:00Z',
+        viewport: {width: 1200, height: 900, deviceScaleFactor: 1}
+    });
+
+    // Simulate a second accessible frame document: its own html tree, not
+    // reachable from the top-frame root.
+    const frameRoot = 'frame-element-root';
+    const frameBody = 'frame-element-body';
+    const frameBanner = 'frame-element-banner';
+    snapshot.elements.push(
+        {id: frameRoot, tagName: 'html', textSample: '', attributes: {}, children: [frameBody]},
+        {id: frameBody, tagName: 'body', textSample: '', attributes: {}, children: [frameBanner]},
+        {id: frameBanner, tagName: 'div', textSample: 'Frame banner', attributes: {}, children: []}
+    );
+    for (const id of [frameRoot, frameBody, frameBanner]) {
+        features.elements.push({id, layout: {
+            rect: {x: 0, y: 0, top: 0, right: 100, bottom: 100, left: 0, width: 100, height: 100},
+            display: 'block', visibility: 'visible', opacity: 1,
+            position: 'fixed', zIndex: 5
+        }});
+    }
+
+    const replay = runFrozenSnapshot(geometryRules(), snapshot, features);
+    assert.equal(replay.elementsById.has(frameBanner), false);
+    assert.equal(replay.elementsById.size, replayableElements(snapshot).length);
+    assert.ok(replay.elementsById.size < snapshot.elements.length);
 });

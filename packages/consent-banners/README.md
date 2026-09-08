@@ -17,6 +17,17 @@ The command supports the named probe sets `ci-50`, `dev-1000`, and
 `frozen-1000`. It opens each frozen DOM in Playwright Chromium, patches layout
 from the feature file, and runs `detect(document)` in the page.
 
+Replay rebuilds the top-frame document only, which matches v0.1 top-frame
+detection. Elements from other frame documents stay in the snapshot file and
+are counted in the report under `frames`. Frame records for documents the
+capture could not reach are counted separately as `placeholderFrameRecords`.
+Every replayed element carries its snapshot ID in a data attribute, so
+alignment survives the HTML parser moving elements. The HTML parser can
+insert elements the snapshot never held, such as a `tbody` around bare `tr`
+rows; the report counts them as `phantomElements` instead of failing the
+page. The benchmark context blocks all network requests, so a replay
+fetches nothing.
+
 Each page gets one first-call measurement, three warm-ups, and 30 measured
 repeated calls. The JSON report includes initialization, first-call, p50, and
 p95 latency.

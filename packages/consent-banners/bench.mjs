@@ -18,6 +18,15 @@ const DEFAULT_WARMUPS = 3;
 const DEFAULT_REPETITIONS = 30;
 const DEFAULT_CPU_THROTTLE = 4;
 const SKIPPED_TAGS = new Set(['script', 'noscript', 'style', 'template']);
+// HTML void elements have no closing tag. Writing one makes the parser
+// add a second, phantom element and breaks replay parity.
+const VOID_TAGS = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img',
+    'input', 'link', 'meta', 'param', 'source', 'track', 'wbr']);
+
+// Every replayed element carries its snapshot ID, so alignment works by
+// identity. The HTML parser relocates elements that scripts moved into
+// parser-illegal positions, which breaks alignment by position.
+const REPLAY_ID_ATTRIBUTE = 'data-smelt-replay-id';
 
 function requireValue(condition, message) {
     if (!condition) throw new TypeError(message);
@@ -41,15 +50,46 @@ function escapeAttribute(value) {
 function serializeElement(element, byId) {
     if (SKIPPED_TAGS.has(element.tagName)) return '';
     const attrs = Object.entries(element.attributes ?? {})
+        // A captured page may already carry our marker name. Drop it: the
+        // HTML parser keeps the first of two same-named attributes, so a
+        // page-supplied value would shadow the real snapshot ID.
+        .filter(([name]) => name !== REPLAY_ID_ATTRIBUTE)
         .map(([name, value]) => ` ${name}="${escapeAttribute(value)}"`)
         .join('');
+    const marker = ` ${REPLAY_ID_ATTRIBUTE}="${escapeAttribute(element.id)}"`;
+    if (VOID_TAGS.has(element.tagName)) return `<${element.tagName}${attrs}${marker}>`;
     const children = element.children
         .map(id => serializeElement(byId.get(id), byId))
         .join('');
-    return `<${element.tagName}${attrs}>${escapeText(element.textSample)}${children}</${element.tagName}>`;
+    return `<${element.tagName}${attrs}${marker}>${escapeText(element.textSample)}${children}</${element.tagName}>`;
 }
 
-function snapshotToHtml(snapshot) {
+// This duplicates replayableElements in @smelt-oss/capture on purpose, byte
+// for byte in behavior: the bench ships in the published package, where the
+// capture package is only a devDependency. A cross-package parity test keeps
+// the two copies honest.
+export function replayableElements(snapshot) {
+    requireValue(snapshot?.schemaVersion === 1, 'Expected snapshot schemaVersion 1.');
+    const byId = new Map(snapshot.elements.map(element => [element.id, element]));
+    requireValue(byId.size === snapshot.elements.length, 'Snapshot element IDs must be unique.');
+    requireValue(byId.get(snapshot.rootElementId) !== undefined,
+        `Snapshot root element "${snapshot.rootElementId}" is missing.`);
+    const ordered = [];
+    const visit = id => {
+        const element = byId.get(id);
+        requireValue(element !== undefined, `Snapshot element "${id}" is missing.`);
+        if (SKIPPED_TAGS.has(element.tagName)) return;
+        ordered.push(element);
+        // Void elements are serialized without children, so their children
+        // cannot replay. Skip them here to match the serializer.
+        if (VOID_TAGS.has(element.tagName)) return;
+        for (const child of element.children ?? []) visit(child);
+    };
+    visit(snapshot.rootElementId);
+    return ordered;
+}
+
+export function snapshotToHtml(snapshot) {
     requireValue(snapshot?.schemaVersion === 1, 'Expected snapshot schemaVersion 1.');
     const byId = new Map(snapshot.elements.map(element => [element.id, element]));
     requireValue(byId.size === snapshot.elements.length, 'Snapshot element IDs must be unique.');
@@ -143,17 +183,22 @@ async function loadPlaywright(options) {
     }
 }
 
-async function installFrozenLayout(page, snapshot, features) {
-    await page.evaluate(({snapshot, features}) => {
-        const elements = Array.from(document.querySelectorAll('*'));
-        if (elements.length !== snapshot.elements.length) {
-            throw new Error(`Replayed DOM has ${elements.length} elements, but the snapshot has ${snapshot.elements.length}.`);
+async function installFrozenLayout(page, ordered, features) {
+    return page.evaluate(({ordered, marker, features}) => {
+        const actualById = new Map();
+        for (const element of document.querySelectorAll(`[${marker}]`)) {
+            actualById.set(element.getAttribute(marker), element);
+        }
+        if (actualById.size !== ordered.length) {
+            throw new Error(`Replayed DOM holds ${actualById.size} marked elements, but the snapshot root holds ${ordered.length}.`);
         }
         const featureById = new Map(features.elements.map(element => [element.id, element]));
         const styleByElement = new WeakMap();
-        for (let i = 0; i < snapshot.elements.length; i++) {
-            const expected = snapshot.elements[i];
-            const actual = elements[i];
+        for (const expected of ordered) {
+            const actual = actualById.get(expected.id);
+            if (actual === undefined) {
+                throw new Error(`Replayed element "${expected.id}" is missing from the parsed document.`);
+            }
             if (actual.tagName.toLowerCase() !== expected.tagName) {
                 throw new Error(`Replayed element "${expected.id}" expected <${expected.tagName}>.`);
             }
@@ -187,22 +232,35 @@ async function installFrozenLayout(page, snapshot, features) {
             zIndex: 'auto',
             overflow: 'visible'
         };
-    }, {snapshot, features});
+        // The HTML parser inserts elements the snapshot never held, such as
+        // a <tbody> around bare <tr> rows. Count them; do not fail the page.
+        return Array.from(document.querySelectorAll('*'))
+            .filter(element => !element.hasAttribute(marker)).length;
+    }, {ordered, marker: REPLAY_ID_ATTRIBUTE, features});
+}
+
+function frameRecordCounts(snapshot) {
+    // Placeholder frame records stand for documents the capture could not
+    // reach; only accessible documents count as frame documents.
+    const frames = snapshot.frames ?? [{accessible: true}];
+    const documents = frames.filter(frame => frame.accessible !== false).length;
+    return {documents, placeholderFrameRecords: frames.length - documents};
 }
 
 async function measurePage(page, bundlePath, capture, options) {
     const snapshot = await readJson(capture.snapshot);
     const features = await readJson(capture.features);
+    const ordered = replayableElements(snapshot);
     await page.setViewportSize({
         width: Number(features.viewport.width),
         height: Number(features.viewport.height)
     });
     await page.setContent(snapshotToHtml(snapshot), {waitUntil: 'load'});
-    await installFrozenLayout(page, snapshot, features);
+    const phantomElements = await installFrozenLayout(page, ordered, features);
     const initStart = performance.now();
     await page.addScriptTag({path: bundlePath});
     const initializationMs = performance.now() - initStart;
-    return await page.evaluate(async ({warmups, repetitions, initializationMs}) => {
+    const measured = await page.evaluate(async ({warmups, repetitions, initializationMs}) => {
         const detect = window.__SmeltConsentBenchBundle.detect;
         const timedDetect = async () => {
             const start = performance.now();
@@ -235,6 +293,15 @@ async function measurePage(page, bundlePath, capture, options) {
         repetitions: options.repetitions,
         initializationMs
     });
+    return {
+        ...measured,
+        frames: {
+            ...frameRecordCounts(snapshot),
+            snapshotElements: snapshot.elements.length,
+            replayedElements: ordered.length,
+            phantomElements
+        }
+    };
 }
 
 export async function runBrowserBenchmark(options) {
@@ -252,6 +319,11 @@ export async function runBrowserBenchmark(options) {
     try {
         browser = await playwright.chromium.launch({headless: options.headless ?? true});
         const context = await browser.newContext();
+        // A replayed capture keeps its original resource attributes. Block
+        // every request so the benchmark fetches nothing and no external
+        // server sees benchmark traffic; subresources fail fast instead of
+        // holding back the load event.
+        await context.route('**/*', route => route.abort());
         const pages = [];
         for (const capture of captures) {
             const page = await context.newPage();
@@ -271,12 +343,14 @@ export async function runBrowserBenchmark(options) {
                 firstCallMs: compactNumber(measured.firstCallMs),
                 repeatedCall: summarizeLatency(measured.repeatedCallMs),
                 samplesMs: measured.repeatedCallMs.map(compactNumber),
-                stats: measured.lastStats
+                stats: measured.lastStats,
+                frames: measured.frames
             });
         }
         const repeated = pages.flatMap(item => item.samplesMs);
         const firstCalls = pages.map(item => item.firstCallMs);
         const initialization = pages.map(item => item.initializationMs);
+        const multiFramePages = pages.filter(item => item.frames.documents > 1).length;
         return {
             schemaVersion: 1,
             task: 'consent-banners',
@@ -295,7 +369,23 @@ export async function runBrowserBenchmark(options) {
                 pages: pages.length,
                 initialization: summarizeLatency(initialization),
                 firstCall: summarizeLatency(firstCalls),
-                repeatedCall: summarizeLatency(repeated)
+                repeatedCall: summarizeLatency(repeated),
+                frames: {
+                    // Replay rebuilds the top-frame document only; the
+                    // detector runs v0.1 top-frame detection.
+                    replay: 'top-frame',
+                    multiFramePages,
+                    placeholderFrameRecords: pages.reduce((sum, item) =>
+                        sum + item.frames.placeholderFrameRecords, 0),
+                    snapshotElements: pages.reduce((sum, item) =>
+                        sum + item.frames.snapshotElements, 0),
+                    replayedElements: pages.reduce((sum, item) =>
+                        sum + item.frames.replayedElements, 0),
+                    // Elements the HTML parser inserted without a snapshot
+                    // counterpart, such as a <tbody> around bare <tr> rows.
+                    phantomElements: pages.reduce((sum, item) =>
+                        sum + item.frames.phantomElements, 0)
+                }
             }
         };
     } finally {

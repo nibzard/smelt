@@ -14,7 +14,7 @@ import {performance} from 'node:perf_hooks';
 import {fileURLToPath} from 'node:url';
 import {gzipSync} from 'node:zlib';
 
-import {runFrozenSnapshot} from '@smelt-oss/capture/replay';
+import {replayableElements, runFrozenSnapshot} from '@smelt-oss/capture/replay';
 import {evaluate} from '@smelt-oss/pilot';
 import {type} from '@smelt-oss/runtime';
 import {rulesHash} from './model.mjs';
@@ -179,13 +179,28 @@ function vectorizeSplit(module, split, name) {
         throw new LoopError(`Capture count does not match ${name} label count.`);
     }
     const rows = [];
+    const scoredPages = [];
     let slowestPageMs = 0;
+    let frameRootPages = 0;
+    let phantomElements = 0;
     for (const page of labels.pages) {
         const capture = captureById.get(page.id);
         if (capture === undefined) throw new LoopError(`Missing capture for page: ${page.id}`);
+        // A page whose acceptable roots all sit in other frame documents can
+        // neither produce nor score a correct root in a top-frame replay.
+        // Skip it, count it, and leave it out of scoring. A page without
+        // any acceptable root is a true negative, not a skip.
+        const replayableIds = new Set(replayableElements(capture.snapshot).map(element => element.id));
+        if (page.acceptableRoots.length > 0
+                && !page.acceptableRoots.some(rootId => replayableIds.has(rootId))) {
+            frameRootPages++;
+            continue;
+        }
+        scoredPages.push(page);
         const start = performance.now();
         const replay = runFrozenSnapshot(module.consentRules(), capture.snapshot, capture.features);
         slowestPageMs = Math.max(slowestPageMs, performance.now() - start);
+        phantomElements += replay.phantomCount;
         for (const fnode of replay.run.get(type(module.CANDIDATE_TYPE))) {
             const elementId = [...replay.elementsById.entries()]
                 .find(([, element]) => element === fnode.element)?.[0];
@@ -202,7 +217,8 @@ function vectorizeSplit(module, split, name) {
         }
     }
     if (rows.length === 0) throw new LoopError(`No candidate rows in ${name} split.`);
-    return {rows, labels, slowestPageMs: compactNumber(slowestPageMs), captureById};
+    return {rows, labels: {...labels, pages: scoredPages}, frameRootPages, phantomElements,
+        slowestPageMs: compactNumber(slowestPageMs), captureById};
 }
 
 // The candidate module controls vectorForConsentCandidate, so its output is
@@ -527,11 +543,11 @@ export function createCommandAgent(command, args = [], options = {}) {
 }
 
 async function evaluateRules(module, split) {
-    const {rows, labels, slowestPageMs, captureById} =
+    const {rows, labels, frameRootPages, slowestPageMs, captureById} =
         vectorizeSplit(module, split, 'development');
     const scores = scoreRows(module, rows);
     const {threshold, f1} = selectThreshold(labels, rows, scores);
-    return {rows, labels, scores, threshold, f1, slowestPageMs, captureById};
+    return {rows, labels, frameRootPages, scores, threshold, f1, slowestPageMs, captureById};
 }
 
 /**
@@ -660,7 +676,9 @@ export async function runRulesLoop(input, options = {}) {
                     scratch = await loadRulesModule(candidateSource, config);
                     const evaluated = await evaluateRules(scratch.module, input.development);
                     entry.gates.latency = {ok: evaluated.slowestPageMs < config.pageLatencyCapMs,
-                        slowestPageMs: evaluated.slowestPageMs};
+                        slowestPageMs: evaluated.slowestPageMs,
+                        frameRootPages: evaluated.frameRootPages,
+                        phantomElements: evaluated.phantomElements};
                     if (!entry.gates.latency.ok) {
                         entry.reasons.push(`latency: ${evaluated.slowestPageMs} ms on the slowest ` +
                             'page is at or over the cap.');

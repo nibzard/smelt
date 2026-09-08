@@ -6,7 +6,7 @@ import {spawnSync} from 'node:child_process';
 import {readFileSync} from 'node:fs';
 import {performance} from 'node:perf_hooks';
 
-import {runFrozenSnapshot} from '@smelt-oss/capture/replay';
+import {replayableElements, runFrozenSnapshot} from '@smelt-oss/capture/replay';
 import {evaluate} from '@smelt-oss/pilot';
 import {type} from '@smelt-oss/runtime';
 import {createModelArtifact, readModelArtifact, rulesHash, scorePackedForest} from './model.mjs';
@@ -124,16 +124,31 @@ function vectorizeSplit(dataset, captures) {
         `Capture count does not match ${dataset.split} label count.`);
 
     const rows = [];
+    const scoredPages = [];
     let vectorizeMs = 0;
     let ruleRunMs = 0;
     let truncatedPages = 0;
+    let frameRootPages = 0;
+    let phantomElements = 0;
     for (const page of labels.values()) {
         const capture = captureById.get(page.id);
         requireValue(capture !== undefined, `Missing capture for page: ${page.id}`);
+        // A page whose acceptable roots all sit in other frame documents can
+        // neither produce nor score a correct root in a top-frame replay.
+        // Skip it, count it, and leave it out of scoring. A page without
+        // any acceptable root is a true negative, not a skip.
+        const replayableIds = new Set(replayableElements(capture.snapshot).map(element => element.id));
+        if (page.acceptableRoots.length > 0
+                && !page.acceptableRoots.some(rootId => replayableIds.has(rootId))) {
+            frameRootPages++;
+            continue;
+        }
+        scoredPages.push(page);
         const start = now();
         const replay = runFrozenSnapshot(consentRules(), capture.snapshot, capture.features);
         vectorizeMs += now() - start;
         ruleRunMs += replay.run.stats.ms;
+        phantomElements += replay.phantomCount;
         if (replay.run.stats.truncated) truncatedPages++;
         const candidates = replay.run.get(type(CANDIDATE_TYPE));
         for (const fnode of candidates) {
@@ -154,10 +169,15 @@ function vectorizeSplit(dataset, captures) {
     requireValue(rows.length > 0, `No candidate rows in ${dataset.split} split.`);
     return {
         rows,
+        labels: {...dataset, pages: scoredPages},
         stats: {
             pages: labels.size,
             candidates: rows.length,
             truncatedPages,
+            frameRootPages,
+            // Elements the HTML parser inserted without a snapshot
+            // counterpart, such as a <tbody> around bare <tr> rows.
+            phantomElements,
             vectorizeMs: compactNumber(vectorizeMs),
             ruleRunMs: compactNumber(ruleRunMs)
         }
@@ -368,7 +388,9 @@ export function trainConsentBaselines(input) {
     const development = vectorizeSplit(input.development.labels, input.development.captures);
     assertTrainable(train.rows, 'Linear and LightGBM training');
     const dataset = {
-        development: input.development.labels,
+        // Only scored pages reach evaluation; frame-root pages are counted
+        // in the split stats instead.
+        development: development.labels,
         costs: input.costs ?? {},
         humanEffortHours: Number(input.humanEffortHours ?? 0),
         developmentStats: development.stats

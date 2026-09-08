@@ -137,5 +137,13 @@ const {run, elementsById} = runFrozenSnapshot(rules, snapshot, features)
 
 The replay shim patches `getBoundingClientRect()`, `getComputedStyle()`,
 `innerWidth`, `innerHeight`, and `devicePixelRatio` with values from the
-feature file. `compareFrozenReplay()` compares browser and Node vectors for
-CI fixtures.
+feature file.
+
+`compareFrozenReplay()` compares vectors from two documents over one capture.
+Without `browserElementsById`, both sides are replayed documents, so the call
+checks only the replay itself. Pass `browserElementsById`, a map from snapshot
+ID to the element in `browserDocument` that the capture saw, for a genuine
+browser-versus-Node comparison. That document needs its own layout, for
+example from a real browser or a test stub. `documentFromSnapshot()` and
+`runFrozenSnapshot()` also report `phantomCount`, the number of elements the
+HTML parser inserted without a snapshot counterpart.

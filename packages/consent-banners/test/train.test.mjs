@@ -104,6 +104,23 @@ function split(name, cases) {
     };
 }
 
+// A page whose only acceptable root sits in another frame document. The
+// top-frame replay can neither produce nor score that root.
+function frameRootPage(id, group) {
+    const item = consentPage(id, group);
+    const frameBanner = 'frame-element-banner';
+    item.capture.snapshot.elements.push(
+        {id: frameBanner, tagName: 'div', textSample: 'Frame banner', attributes: {}, children: []}
+    );
+    item.capture.features.elements.push({id: frameBanner, layout: {
+        rect: {x: 0, y: 0, top: 0, right: 300, bottom: 150, left: 0, width: 300, height: 150},
+        display: 'block', visibility: 'visible', opacity: 1, position: 'fixed', zIndex: 5
+    }});
+    item.page.acceptableRoots = [frameBanner];
+    item.page.exactRoot = frameBanner;
+    return item;
+}
+
 test('trains and compares rules, linear, and LightGBM baselines', () => {
     const train = split('train', [
         consentPage('train-positive', 'example-a'),
@@ -130,7 +147,8 @@ test('trains and compares rules, linear, and LightGBM baselines', () => {
             <html><body>
                 <footer id="footer"><a href="/cookies">Cookie policy</a></footer>
             </body></html>
-        `, 'footer')
+        `, 'footer'),
+        frameRootPage('dev-frame-root', 'example-f')
     ]);
 
     const report = trainConsentBaselines({
@@ -155,6 +173,8 @@ test('trains and compares rules, linear, and LightGBM baselines', () => {
     )), 'number');
     assert.deepEqual(report.baselines.map(item => item.name), ['rules', 'linear', 'lightgbm']);
     for (const baseline of report.baselines) {
+        // Evaluation covers the two scored pages; the frame-root page is
+        // counted in the split stats, not scored.
         assert.equal(baseline.accuracy.pages, 2);
         assert.equal(typeof baseline.accuracy.detectionF1, 'number');
         assert.equal(typeof baseline.effort.machineTrainingMs, 'number');
@@ -163,5 +183,8 @@ test('trains and compares rules, linear, and LightGBM baselines', () => {
         assert.equal(typeof baseline.latency.scoreMs, 'number');
     }
     assert.equal(report.splits.train.pages, 3);
-    assert.equal(report.splits.development.pages, 2);
+    assert.equal(report.splits.development.pages, 3);
+    // The frame-root page is skipped, not scored as a false negative.
+    assert.equal(report.splits.development.frameRootPages, 1);
+    assert.equal(report.splits.train.frameRootPages, 0);
 });
