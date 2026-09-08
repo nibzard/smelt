@@ -201,8 +201,8 @@
       "id": "T007",
       "title": "Add the local Playwright capture path",
       "priority": 2,
-      "status": "todo",
-      "details": "Provide a local reproduction path that writes the same snapshot, feature, and metadata format as the Steel adapter.",
+      "status": "done",
+      "details": "Added the local Playwright capture path. It shares the page-capture core with the Steel adapter, launches a local Chromium or Firefox without credentials, accepts HTTP, HTTPS, and config-relative fixture files, and writes the same snapshot, feature, and metadata files with the local backend tag. Verified end to end with a real headless-Chromium crawl of the four bundled fixtures.",
       "steps": [
         "Create a local crawler command.",
         "Use the same capture schema as Steel.",
@@ -213,14 +213,25 @@
         "playwright"
       ],
       "files": [
+        "CONTRIBUTING.md",
         "README.md",
-        "CONTRIBUTING.md"
+        "packages/capture/crawl.mjs",
+        "packages/capture/fixtures/crawl.json",
+        "packages/capture/local-cli.mjs",
+        "packages/capture/local.mjs",
+        "packages/capture/package.json",
+        "packages/capture/steel.mjs",
+        "packages/capture/test/helpers.mjs",
+        "packages/capture/test/local.test.mjs",
+        "packages/capture/test/steel.test.mjs",
+        "to-do.json"
       ],
       "depends_on": [
         "T005"
       ],
       "created_at": "2026-09-07T21:13:21Z",
-      "updated_at": "2026-09-07T21:13:21Z"
+      "updated_at": "2026-09-07T23:42:55Z",
+      "blockers": []
     },
     {
       "id": "T008",
@@ -350,7 +361,7 @@
         "T009"
       ],
       "created_at": "2026-09-07T21:13:21Z",
-      "updated_at": "2026-09-07T22:19:31Z",
+      "updated_at": "2026-09-07T22:20:30Z",
       "blockers": []
     },
     {
@@ -381,7 +392,7 @@
         "T010"
       ],
       "created_at": "2026-09-07T21:13:21Z",
-      "updated_at": "2026-09-07T22:26:31Z"
+      "updated_at": "2026-09-07T22:28:18Z"
     },
     {
       "id": "T013",
@@ -402,9 +413,9 @@
       ],
       "files": [
         "packages/consent-banners/package.json",
+        "packages/consent-banners/test/train.test.mjs",
         "packages/consent-banners/train-cli.mjs",
         "packages/consent-banners/train.mjs",
-        "packages/consent-banners/test/train.test.mjs",
         "tasks/consent-banners/program.md",
         "to-do.json"
       ],
@@ -413,7 +424,7 @@
         "T012"
       ],
       "created_at": "2026-09-07T21:13:21Z",
-      "updated_at": "2026-09-07T22:35:50Z",
+      "updated_at": "2026-09-07T22:37:57Z",
       "blockers": []
     },
     {
@@ -435,19 +446,19 @@
       ],
       "files": [
         "packages/consent-banners/model.mjs",
-        "packages/consent-banners/schemas/model.schema.json",
-        "packages/consent-banners/train.mjs",
-        "packages/consent-banners/train-cli.mjs",
         "packages/consent-banners/package.json",
+        "packages/consent-banners/schemas/model.schema.json",
         "packages/consent-banners/test/model.test.mjs",
         "packages/consent-banners/test/train.test.mjs",
+        "packages/consent-banners/train-cli.mjs",
+        "packages/consent-banners/train.mjs",
         "to-do.json"
       ],
       "depends_on": [
         "T013"
       ],
       "created_at": "2026-09-07T21:13:21Z",
-      "updated_at": "2026-09-07T22:43:20Z",
+      "updated_at": "2026-09-07T22:44:38Z",
       "blockers": []
     },
     {
@@ -468,10 +479,10 @@
         "performance"
       ],
       "files": [
+        "packages/runtime/README.md",
         "packages/runtime/index.mjs",
         "packages/runtime/model.mjs",
         "packages/runtime/package.json",
-        "packages/runtime/README.md",
         "packages/runtime/test/model.test.mjs",
         "packages/runtime/utils.mjs",
         "to-do.json"
@@ -480,7 +491,7 @@
         "T014"
       ],
       "created_at": "2026-09-07T21:13:21Z",
-      "updated_at": "2026-09-07T22:50:07Z",
+      "updated_at": "2026-09-07T22:51:26Z",
       "blockers": []
     },
     {
@@ -512,7 +523,7 @@
         "T015"
       ],
       "created_at": "2026-09-07T21:13:21Z",
-      "updated_at": "2026-09-07T22:58:16Z",
+      "updated_at": "2026-09-07T22:59:28Z",
       "blockers": []
     },
     {
@@ -544,7 +555,7 @@
         "T016"
       ],
       "created_at": "2026-09-07T21:13:21Z",
-      "updated_at": "2026-09-07T23:06:45Z",
+      "updated_at": "2026-09-07T23:09:24Z",
       "blockers": []
     },
     {
@@ -650,11 +661,11 @@
       ],
       "files": [
         "IDEA.md",
-        "tasks/consent-banners/program.md",
         "packages/consent-banners/README.md",
         "packages/consent-banners/package.json",
         "packages/consent-banners/steel-workflow.mjs",
         "packages/consent-banners/test/steel-workflow.test.mjs",
+        "tasks/consent-banners/program.md",
         "to-do.json"
       ],
       "depends_on": [
@@ -662,7 +673,7 @@
         "T016"
       ],
       "created_at": "2026-09-07T21:13:21Z",
-      "updated_at": "2026-09-07T23:15:43Z",
+      "updated_at": "2026-09-07T23:17:22Z",
       "blockers": []
     },
     {
@@ -693,7 +704,7 @@
         "T021"
       ],
       "created_at": "2026-09-07T21:13:21Z",
-      "updated_at": "2026-09-07T23:22:58Z",
+      "updated_at": "2026-09-07T23:25:44Z",
       "blockers": []
     },
     {
@@ -724,7 +735,7 @@
         "T020"
       ],
       "created_at": "2026-09-07T21:13:21Z",
-      "updated_at": "2026-09-07T23:28:48Z",
+      "updated_at": "2026-09-07T23:30:44Z",
       "blockers": []
     },
     {

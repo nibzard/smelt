@@ -49,6 +49,37 @@ not want the endpoint in the config file. The adapter accepts `chromium` and
 Keep generated captures in `corpus/`. Do not commit Steel credentials,
 customer-session content, or raw crawl output.
 
+## Local capture
+
+Run the same capture pipeline without Steel credentials. The local crawler
+launches a Playwright browser on your machine:
+
+```sh
+npm run local:capture --workspace @smelt-oss/capture -- path/to/local-capture.json
+```
+
+The config matches the Steel format, with two differences:
+
+- `browser` has a `name` only. A `wsEndpoint` is rejected.
+- A page can use `file` with a path relative to the config file, for local
+  fixture pages. The `url` field accepts HTTP, HTTPS, and `file:` URLs.
+- `storageState` accepts an object or a path to a saved state file, relative
+  to the config file.
+
+The crawler writes the same three files per page, with `"backend": "local"`.
+
+To crawl the bundled fixtures without credentials, install Playwright and its
+Chromium build, then run the fixture crawl:
+
+```sh
+npm install --no-save playwright
+npx playwright install chromium
+npm run local:fixture-crawl --workspace @smelt-oss/capture
+```
+
+The crawl needs no network access to public pages. Output lands in
+`packages/capture/corpus/fixtures/`, which Git ignores.
+
 ## Frozen replay
 
 Use `@smelt-oss/capture/replay` to run Node rules against a stripped snapshot

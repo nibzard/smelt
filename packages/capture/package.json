@@ -12,20 +12,27 @@
     ".": "./index.mjs",
     "./replay": "./replay.mjs",
     "./steel": "./steel.mjs",
+    "./local": "./local.mjs",
     "./snapshot.schema.json": "./schemas/snapshot.schema.json",
     "./features.schema.json": "./schemas/features.schema.json"
   },
   "bin": {
-    "smelt-steel-capture": "./steel-cli.mjs"
+    "smelt-steel-capture": "./steel-cli.mjs",
+    "smelt-local-capture": "./local-cli.mjs"
   },
   "files": [
     "index.mjs",
     "replay.mjs",
+    "crawl.mjs",
+    "steel.mjs",
+    "local.mjs",
     "schemas/",
     "fixtures/"
   ],
   "scripts": {
     "steel:capture": "node steel-cli.mjs",
+    "local:capture": "node local-cli.mjs",
+    "local:fixture-crawl": "node local-cli.mjs fixtures/crawl.json",
     "test": "node --test"
   },
   "peerDependencies": {

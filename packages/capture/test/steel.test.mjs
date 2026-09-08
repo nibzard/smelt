@@ -7,82 +7,10 @@ import {mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {test} from 'node:test';
-import {parseHTML} from 'linkedom';
 
-import {capturePage, loadSteelCaptureConfig, runSteelCapture, writeCapture} from '../steel.mjs';
-
-class FakePage {
-    constructor(html, browserVersion = '128.0.0') {
-        this.doc = parseHTML(html, {url: 'https://example.test/'}).document;
-        this.browserVersion = browserVersion;
-        this.initScripts = [];
-        this.viewport = null;
-        this.gotoUrl = null;
-    }
-
-    async setViewportSize(viewport) {
-        this.viewport = viewport;
-        this.doc.defaultView.innerWidth = viewport.width;
-        this.doc.defaultView.innerHeight = viewport.height;
-    }
-
-    async addInitScript(script) {
-        this.initScripts.push(script);
-    }
-
-    async goto(url) {
-        this.gotoUrl = url;
-        Object.defineProperty(this.doc, 'URL', {value: url, configurable: true});
-    }
-
-    async waitForLoadState() {}
-
-    async waitForTimeout() {}
-
-    context() {
-        return {browser: () => ({version: () => this.browserVersion})};
-    }
-
-    async evaluate(callback, payload) {
-        const previousDocument = globalThis.document;
-        const previousNavigator = globalThis.navigator;
-        const previousInnerWidth = globalThis.innerWidth;
-        const previousInnerHeight = globalThis.innerHeight;
-        const previousDevicePixelRatio = globalThis.devicePixelRatio;
-        const previousNode = globalThis.Node;
-        const previousPerformance = globalThis.performance;
-        Object.defineProperty(globalThis, 'document', {value: this.doc, configurable: true});
-        Object.defineProperty(globalThis, 'navigator', {
-            value: {userAgent: 'FakeSteelBrowser/1.0'},
-            configurable: true
-        });
-        globalThis.innerWidth = this.viewport.width;
-        globalThis.innerHeight = this.viewport.height;
-        globalThis.devicePixelRatio = 1;
-        globalThis.Node = this.doc.defaultView.Node;
-        globalThis.performance = {
-            getEntriesByType: () => [{toJSON: () => ({type: 'navigate'})}]
-        };
-        try {
-            return callback(payload);
-        } finally {
-            restore('document', previousDocument);
-            restore('navigator', previousNavigator);
-            globalThis.innerWidth = previousInnerWidth;
-            globalThis.innerHeight = previousInnerHeight;
-            globalThis.devicePixelRatio = previousDevicePixelRatio;
-            globalThis.Node = previousNode;
-            globalThis.performance = previousPerformance;
-        }
-    }
-
-    async close() {}
-}
-
-function restore(name, value) {
-    if (value === undefined) delete globalThis[name];
-    else Object.defineProperty(globalThis, name, {value, configurable: true});
-}
+import {capturePage, writeCapture} from '../crawl.mjs';
+import {loadSteelCaptureConfig, runSteelCapture} from '../steel.mjs';
+import {FakePage} from './helpers.mjs';
 
 function config(overrides = {}) {
     return {
@@ -149,4 +77,44 @@ test('runSteelCapture requires a Steel browser endpoint', async () => {
     await assert.rejects(() => runSteelCapture(config({browser: {name: 'chromium', wsEndpoint: null}}), {
         playwright: {}
     }), /STEEL_BROWSER_WS_ENDPOINT/);
+});
+
+test('loadSteelCaptureConfig rejects duplicate page ids', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'smelt-steel-dupes-'));
+    try {
+        await writeFile(path.join(dir, 'steel.json'), JSON.stringify(config({
+            pages: [
+                {url: 'https://example.test/pricing'},
+                {url: 'https://example.test/docs'}
+            ]
+        }), null, 2));
+
+        await assert.rejects(() => loadSteelCaptureConfig(path.join(dir, 'steel.json')),
+            /collides with/);
+    } finally {
+        await rm(dir, {recursive: true, force: true});
+    }
+});
+
+test('runSteelCapture pins the steel backend label', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'smelt-steel-backend-'));
+    try {
+        const page = new FakePage('<!doctype html><html><body>Ok</body></html>');
+        const browser = {
+            contexts: () => [{newPage: async () => page}],
+            close: async () => undefined
+        };
+        const captures = await runSteelCapture(config({outDir: dir}), {
+            playwright: {chromium: {connectOverCDP: async () => browser}},
+            backend: 'local',
+            capturedAt: '2026-09-07T23:50:00Z'
+        });
+
+        const metadata = JSON.parse(await readFile(captures[0].paths.metadata, 'utf8'));
+        const snapshot = JSON.parse(await readFile(captures[0].paths.snapshot, 'utf8'));
+        assert.equal(metadata.backend, 'steel');
+        assert.equal(snapshot.metadata.backend, 'steel');
+    } finally {
+        await rm(dir, {recursive: true, force: true});
+    }
 });

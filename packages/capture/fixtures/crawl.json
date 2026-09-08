@@ -1,0 +1,35 @@
+{
+  "outDir": "corpus/fixtures",
+  "browser": {
+    "name": "chromium"
+  },
+  "viewport": {
+    "width": 1280,
+    "height": 720,
+    "deviceScaleFactor": 1
+  },
+  "observationMs": 250,
+  "navigationTimeoutMs": 5000,
+  "pages": [
+    {
+      "id": "positive",
+      "file": "positive.html",
+      "group": "fixtures"
+    },
+    {
+      "id": "negative",
+      "file": "negative.html",
+      "group": "fixtures"
+    },
+    {
+      "id": "delayed",
+      "file": "delayed.html",
+      "group": "fixtures"
+    },
+    {
+      "id": "frame",
+      "file": "frame.html",
+      "group": "fixtures"
+    }
+  ]
+}
