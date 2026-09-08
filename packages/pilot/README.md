@@ -39,6 +39,27 @@ review records acceptable roots, and every capture enters the review queue.
 Expected classes in the manifests are recipe hints for balance reporting
 only. The test split must stay out of agent-loop inputs.
 
+## Review viewer
+
+`review:viewer` renders every queued capture as a standalone HTML page for
+the human reviewer:
+
+```sh
+npm run review:viewer --workspace @smelt-oss/pilot -- \
+  --queue tasks/consent-banners/review-queue.json \
+  --captures corpus/captures \
+  --out runs/review-viewer
+```
+
+Each page rebuilds the top-frame DOM of the capture and positions every
+element at its captured rectangle. Hover an element to see its snapshot ID.
+Click the banner root, then any extra acceptable roots. The **Copy label
+JSON** button puts a reviewed label stub on the clipboard, ready to paste
+into the split label file. If the banner sits inside an iframe, click the
+iframe element and record the situation in the review notes. Pages link
+from `index.html` and fetch nothing; open them directly from the output
+directory.
+
 ## Steel workflow metric contract
 
 The pilot compares matched Steel task cases with and without Smelt. Measure the

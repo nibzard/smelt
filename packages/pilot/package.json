@@ -7,9 +7,13 @@
   "exports": "./index.mjs",
   "scripts": {
     "prepare:corpus": "node prepare-corpus-cli.mjs",
-    "test": "node --test"
+    "test": "node --test",
+    "review:viewer": "node review-viewer-cli.mjs"
   },
   "engines": {
     "node": ">=20"
+  },
+  "dependencies": {
+    "@smelt-oss/capture": "0.0.0"
   }
 }

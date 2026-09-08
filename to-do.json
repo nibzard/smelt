@@ -326,7 +326,7 @@
         "T009"
       ],
       "created_at": "2026-09-07T21:13:21Z",
-      "updated_at": "2026-09-08T08:40:00Z",
+      "updated_at": "2026-09-08T10:06:50.808Z",
       "blockers": [
         "Human review of the 191 queued captures is required before any label counts. Every label stub is unresolved, so no split can feed training or scoring yet (IDEA.md 3.3.1)."
       ],
@@ -334,7 +334,8 @@
         "2026-09-08: collection step complete. Steel cloud sessions now work from this workspace: STEEL_API_KEY is valid, and a residential proxy with useProxy geolocation DE gives real EU egress (verified egress IP in Germany). The region field alone does not change egress, so the crawl runner routes the EU crawl through the DE proxy and the US crawl through the iad datacenter.",
         "Added packages/capture/session.mjs and session-cli.mjs: chunked Steel sessions, a robots.txt gate (17 pages skipped, including reddit, instagram, facebook, linkedin, x, netflix, quora, wsj, reuters), one isolated browser context per page, per-page failure capture (7 failures recorded), and per-session cost reports.",
         "Added packages/pilot/prepare-corpus.mjs: deterministic group-disjoint splits (114 train, 37 development, 40 test pages over 167 groups), canonical-schema-validated unresolved label stubs, review-queue population (191 items), and summary statistics with browser costs (13 sessions, 189.5 MB proxy traffic, 52.9 browser-minutes). Captures and reports stay in gitignored corpus/.",
-        "Remaining: human review of acceptable roots for all 191 captures; teacher labeling is also blocked in this workspace because ANTHROPIC_API_KEY and GEMINI_API_KEY are not set (ANTHROPIC_AUTH_TOKEN is present but is not the key the teacher adapter reads)."
+        "Remaining: human review of acceptable roots for all 191 captures; teacher labeling is also blocked in this workspace because ANTHROPIC_API_KEY and GEMINI_API_KEY are not set (ANTHROPIC_AUTH_TOKEN is present but is not the key the teacher adapter reads).",
+        "2026-09-08: added packages/pilot/review-viewer.mjs (npm run review:viewer --workspace @smelt-oss/pilot). It renders every queued capture as a positioned standalone HTML page; the reviewer clicks acceptable roots and copies a reviewed label stub. Output lands in gitignored runs/review-viewer/. The human review itself remains the blocker."
       ]
     },
     {
