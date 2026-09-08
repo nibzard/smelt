@@ -12,7 +12,8 @@
     "./rules": "./rules.mjs",
     "./model": "./model.mjs",
     "./model.smelt.json": "./model.smelt.json",
-    "./train": "./train.mjs"
+    "./train": "./train.mjs",
+    "./teacher": "./teacher.mjs"
   },
   "bin": {
     "smelt-consent-bench": "./bench-cli.mjs"
@@ -28,7 +29,8 @@
     "rules.mjs",
     "schemas/model.schema.json",
     "train.mjs",
-    "train-cli.mjs"
+    "train-cli.mjs",
+    "teacher.mjs"
   ],
   "scripts": {
     "bench": "node bench-cli.mjs",

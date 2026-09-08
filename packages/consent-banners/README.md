@@ -67,3 +67,24 @@ The helper does not click controls or change the caller's prompts or action
 policy. It returns the selected element reference and records task completion,
 model calls, total workflow cost, cost per completed task, and added detection
 latency for the Steel pilot.
+
+## Teacher labeling
+
+Label frozen captures with a paid-tier teacher and verify the answer against
+the capture before it enters the corpus (IDEA.md 3.3.4 and 3.3.5):
+
+```js
+import {anthropicTeacher, geminiTeacher, runTeacher} from '@smelt-oss/consent-banners/teacher'
+
+const teacher = anthropicTeacher()          // reads ANTHROPIC_API_KEY
+const google = geminiTeacher()              // reads GEMINI_API_KEY, paid tier only
+const record = await runTeacher(teacher, {snapshot, features})
+// record.verification.status: 'pass', 'flag', or 'reject'
+```
+
+The serialization strips non-rendering subtrees, head noise, hidden frames,
+and attribute values, and caps free text, so structure carries the label
+signal. Every record carries the vendor, model ID, terms version, written
+no-competition rationale, prompt version, prompt hash, token usage, and
+measured cost. Reject or flag records in `verification.issues` for human
+review; answers built from a truncated serialization are always flagged.

@@ -77,12 +77,26 @@ function classTokens(element) {
         .filter(Boolean))).sort();
 }
 
+// Text inside these tags never renders, so text statistics must skip it.
+const NON_TEXT_TAGS = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEMPLATE']);
+
+function renderedText(node) {
+    let out = '';
+    for (const child of node.childNodes ?? []) {
+        if (child.nodeType === 3) out += ` ${child.textContent}`;
+        else if (child.nodeType === 1 && !NON_TEXT_TAGS.has(child.tagName)) {
+            out += ` ${renderedText(child)}`;
+        }
+    }
+    return out;
+}
+
 function textStats(element) {
     const ownText = Array.from(element.childNodes ?? [])
         .filter(node => node.nodeType === 3)
         .map(node => node.textContent)
         .join(' ');
-    const descendantText = normalizeText(element.textContent);
+    const descendantText = normalizeText(renderedText(element));
     return {
         textSample: clampText(ownText, 120),
         textLength: normalizeText(ownText).length,
@@ -96,7 +110,7 @@ function descendantElementCount(element) {
 }
 
 function linkDensity(element) {
-    const textLength = normalizeText(element.textContent).length;
+    const textLength = normalizeText(renderedText(element)).length;
     if (!textLength) return 0;
     const linkTextLength = Array.from(element.querySelectorAll?.('a') ?? [])
         .reduce((sum, link) => sum + normalizeText(link.textContent).length, 0);

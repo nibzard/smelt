@@ -593,8 +593,8 @@
       "id": "T019",
       "title": "Implement teacher adapters and label verification",
       "priority": 2,
-      "status": "todo",
-      "details": "Add paid-tier teacher adapters with written no-competition rationales, prompt hashes, vendor metadata, and DOM verification of teacher roots.",
+      "status": "done",
+      "details": "Added the teacher module in packages/consent-banners/teacher.mjs. serializeForTeacher turns a frozen capture into the canonical sanitized input: non-rendering subtrees, head noise, drawing elements, and frames with a hidden host chain are stripped, a visibility-hidden wrapper keeps its visible descendants, attribute values are dropped except clamped class tokens and role, every page-controlled string loses field delimiters so it cannot forge structured fields, and free text is capped per element and per page. The Anthropic Claude Haiku 4.5 and Google Gemini 2.5 Flash-Lite adapters ship with model IDs, paid-tier flags, terms versions, checked prices, and written no-competition rationales (IDEA.md 3.3.5). runTeacher returns one provenance record with the prompt version, prompt hash, token usage, measured cost, parsed labels, and the verification verdict. verifyTeacherLabels rejects unknown, hidden, transparent, empty-geometry, page-container, and offscreen roots, and negative answers that carry a root, kind, or evidence; it flags viewport-covering, below-fold, text-free, low-opacity, unknown-evidence, and truncated-input records for human review. An adversarial review with 20 agents confirmed 13 findings, all fixed; the capture text statistics now exclude script and style text. Tests use an injected fetch implementation; no test reaches a vendor. Teacher labeling over a real corpus still needs the T010 captures and API keys.",
       "steps": [
         "Implement sanitized DOM serialization.",
         "Add Gemini paid-tier and Anthropic adapters.",
@@ -607,15 +607,19 @@
         "legal"
       ],
       "files": [
-        "IDEA.md",
-        "tasks/consent-banners/program.md"
+        "packages/consent-banners/README.md",
+        "packages/consent-banners/package.json",
+        "packages/consent-banners/teacher.mjs",
+        "packages/consent-banners/test/teacher.test.mjs",
+        "tasks/consent-banners/program.md",
+        "to-do.json"
       ],
       "depends_on": [
         "T009",
         "T005"
       ],
       "created_at": "2026-09-07T21:13:21Z",
-      "updated_at": "2026-09-07T21:13:21Z"
+      "updated_at": "2026-09-08T00:55:00Z"
     },
     {
       "id": "T020",

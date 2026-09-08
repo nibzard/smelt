@@ -111,3 +111,32 @@ under 5 ms at the 95th percentile on the reference machine.
 
 Use dedicated public Steel crawls first. Authorized session samples remain
 private evaluation inputs. Record browser, teacher, and human review costs.
+
+## Teacher labeling
+
+Two teachers from different vendors label every capture: Anthropic Claude
+Haiku 4.5 and Google Gemini 2.5 Flash-Lite, both paid tier. Free tiers are
+banned for labeling (IDEA.md 3.3.5). Each adapter ships with vendor
+metadata, a terms version, checked prices, and a written no-competition
+rationale in `packages/consent-banners/teacher.mjs`. A terms change turns
+relabeling into a scripted job: records carry the vendor, model ID, prompt
+version, prompt hash, terms version, usage, and cost.
+
+Teacher input is the sanitized serialization from `serializeForTeacher`:
+non-rendering subtrees, head noise, drawing elements, and frames with a
+hidden host chain are stripped. A visibility-hidden wrapper keeps its
+visible descendants, because CSS renders them. Attribute values are dropped
+except class tokens and role, and every page-controlled string is clamped
+and stripped of field delimiters, so page text cannot forge the structured
+parts of a line. Free text is capped at 120 characters per element and
+120,000 characters per page. Structure carries the label signal, which is
+also the prompt-injection defense.
+
+`verifyTeacherLabels` checks each answer against the frozen features before
+it enters the corpus. Reject: unknown root, html or body root, hidden or
+transparent root, empty geometry, root entirely off the viewport to the top
+or a side, negative label with a root, a kind, or evidence. Flag for human
+review: viewport-covering root, root entirely below the fold, text-free
+root, low opacity, unknown evidence element, and any answer built from a
+truncated serialization. Rejected and flagged records never reach the
+training labels without human review.
