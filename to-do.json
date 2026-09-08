@@ -1068,7 +1068,7 @@
       "id": "T034",
       "title": "Add v0.2 watch mode",
       "priority": 4,
-      "status": "todo",
+      "status": "done",
       "details": "Implement the experimental watch API with MutationObserver, debounce, idle scheduling, cancellation, and navigation retriggers.",
       "steps": [
         "Add watch(doc, callback, options).",
@@ -1090,7 +1090,8 @@
         "T017"
       ],
       "created_at": "2026-09-07T21:13:21Z",
-      "updated_at": "2026-09-07T21:13:21Z"
+      "updated_at": "2026-09-08T06:48:03Z",
+      "notes": "Shipped as the ./watch subpath of @smelt-oss/consent-banners (watch.mjs), not in the runtime package: the engine stays at 1,971 of its 2,000-line charter and the v0.1 dist stays detect-only, so the eager 51,200-byte gzip budget and the export gates are untouched. package.json gained the subpath export and the files entry; npm pack ships watch.mjs.\n\nwatch(doc, callback, options) implements IDEA.md 3.4.6: an immediate initial run; MutationObserver on childList and subtree; a trailing debounce whose 200 ms default sits inside the specified 150 to 300 ms band; requestIdleCallback coalescing with a 500 ms timeout and a setTimeout(0) fallback; revision tokens that drop any run that is no longer current; and a Navigation API re-trigger where the platform has it. The handle exposes cancel(), flush(), reactive, and revision. Callback exceptions propagate by design.\n\nTests: 16 Node tests plus one browser test. linkedom turns out to ship a working MutationObserver, so the Node tests exercise the real observer integration; a synchronous fake covers the revision races that need deterministic control. The browser test bundles watch.mjs with esbuild into a data: URL module, imports it inside a real Playwright Chromium page, injects a fixed-position banner after load, and asserts the initial miss, the mutation re-detection, and silence after cancel. It was executed for real on this machine (playwright and chromium installed without saving them to the manifest); it skips where they are absent, and it still builds the bundle before skipping so the browser shape of watch.mjs is always checked.\n\nAn adversarial review workflow (16 agents, four dimensions, per-finding refutation) confirmed 9 findings; all are fixed: flush() ran a pending idle task without cancelling it, so the platform could deliver the same revision twice (fixed by cancelling before the manual run plus a fired-once guard on the scheduled callback); flush() replayed an already-consumed callback exception on a later quiet flush (fixed by consuming the awaited run); the README claimed the no-MutationObserver mode delivers only the initial run while the Navigation API listener stays attached (reworded, the behavior is useful); and the test suite had gaps that masked the double-delivery bug (browser-faithful idle stub added, debounce-reset test via the fake observer, custom idleTimeoutMs assertion, and a subprocess test for the documented unhandled-rejection path).\n\nFull verify is green: check, every workspace suite (87 tests in this package, 0 skipped), export gates, and both size budgets."
     },
     {
       "id": "T035",

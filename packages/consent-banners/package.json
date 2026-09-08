@@ -15,7 +15,8 @@
     "./model.smelt.json": "./model.smelt.json",
     "./train": "./train.mjs",
     "./teacher": "./teacher.mjs",
-    "./loop": "./loop.mjs"
+    "./loop": "./loop.mjs",
+    "./watch": "./watch.mjs"
   },
   "bin": {
     "smelt-consent-bench": "./bench-cli.mjs",
@@ -36,7 +37,8 @@
     "train-cli.mjs",
     "teacher.mjs",
     "loop.mjs",
-    "loop-cli.mjs"
+    "loop-cli.mjs",
+    "watch.mjs"
   ],
   "scripts": {
     "bench": "node bench-cli.mjs",

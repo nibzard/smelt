@@ -39,6 +39,40 @@ Manifest format:
 }
 ```
 
+## Watch mode (experimental, v0.2)
+
+Re-run detection while a single-page application mutates itself (IDEA.md
+3.4.6):
+
+```js
+import {watch} from '@smelt-oss/consent-banners/watch'
+
+const handle = watch(document, (result, {cause, revision}) => {
+  // cause is 'initial', 'mutation', or 'navigate'.
+}, {debounceMs: 200})
+
+handle.cancel()   // Stop watching and drop pending runs.
+handle.flush()    // Run a pending re-detection now (useful in tests).
+```
+
+The first detection runs immediately. After that, childList and subtree
+mutations schedule one debounced re-detection. The default debounce is
+200 ms, inside the specified 150 to 300 ms band. When the platform has
+`requestIdleCallback`, the run waits for idle time with a 500 ms timeout.
+Navigations through the Navigation API re-trigger detection when the
+platform has it.
+
+Every run carries a revision token. Changes that land while a run is
+pending or in flight bump the token. A run that is no longer current is
+dropped, so the callback always sees the newest page. When no
+MutationObserver exists, the handle reports `reactive: false`. The
+initial run still fires, and Navigation API navigations still re-trigger
+detection when the platform has them.
+
+The subpath is experimental for v0.2 and stays outside the v0.1 dist.
+The npm export path above is unchanged. Exceptions from the callback
+propagate.
+
 ## Steel workflow hook
 
 Use `runControlledSteelWorkflow()` to run detection inside an existing Steel

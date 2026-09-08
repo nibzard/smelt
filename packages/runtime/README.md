@@ -48,6 +48,18 @@ tie, it prefers the smaller root, then the earlier element in document order.
 It returns `{best, scored, threshold, stats}`. `stats.ms` measures tree scoring
 cost only.
 
+## Watch mode
+
+The experimental `watch()` API (IDEA.md 3.4.6) does not live in this
+engine package. The line and size charters above stay intact. It ships
+from the first task package instead:
+
+```js
+import {watch} from '@smelt-oss/consent-banners/watch';
+```
+
+See that package's README for the semantics.
+
 ## Charter
 
 - Engine core under 10,240 bytes gzipped (`npm run size`).
