@@ -117,11 +117,11 @@ function candidateLabel(page, elementId) {
     return page.acceptableRoots.includes(elementId) ? 1 : 0;
 }
 
-function vectorizeSplit(dataset, captures) {
-    const labels = validateDataset(dataset, dataset.split);
-    const captureById = validateCaptures(captures, dataset.split);
+function vectorizeSplit(dataset, captures, expectedSplit) {
+    const labels = validateDataset(dataset, expectedSplit);
+    const captureById = validateCaptures(captures, expectedSplit);
     requireValue(captureById.size === labels.size,
-        `Capture count does not match ${dataset.split} label count.`);
+        `Capture count does not match ${expectedSplit} label count.`);
 
     const rows = [];
     const scoredPages = [];
@@ -159,7 +159,7 @@ function vectorizeSplit(dataset, captures) {
             requireValue(elementId !== undefined, `Candidate element was not in snapshot: ${page.id}`);
             const vector = vectorForConsentCandidate(fnode);
             rows.push({
-                split: dataset.split,
+                split: expectedSplit,
                 pageId: page.id,
                 group: page.group,
                 elementId,
@@ -373,6 +373,25 @@ function assertTrainable(rows, name) {
     requireValue(labels.has(0) && labels.has(1), `${name} needs positive and negative candidate rows.`);
 }
 
+// IDEA.md 3.2.4 keeps the frozen test set physically absent from training
+// inputs, and the corpus keeps every template group inside one split. A
+// shared page id is direct leakage; a shared group lets a model memorize
+// one layout and score it again in development.
+function assertDisjointRoles(trainLabels, developmentLabels) {
+    const developmentGroups = new Set();
+    for (const page of developmentLabels.values()) developmentGroups.add(page.group);
+    const sharedIds = [];
+    const sharedGroups = new Set();
+    for (const page of trainLabels.values()) {
+        if (developmentLabels.has(page.id)) sharedIds.push(page.id);
+        if (developmentGroups.has(page.group)) sharedGroups.add(page.group);
+    }
+    requireValue(sharedIds.length === 0,
+        `Page ids appear in both train and development: ${sharedIds.slice(0, 5).join(', ')}`);
+    requireValue(sharedGroups.size === 0,
+        `Groups appear in both train and development: ${[...sharedGroups].slice(0, 5).join(', ')}`);
+}
+
 /**
  * Train and compare consent-banner baselines on the same development data.
  *
@@ -385,9 +404,16 @@ export function trainConsentBaselines(input) {
         'Expected train and development labels.');
     requireValue(input.train?.captures && input.development?.captures,
         'Expected train and development captures.');
+    // Pin each manifest role to its declared split before any vectorization
+    // runs, so a manifest that names the wrong labels file — the frozen test
+    // among them — fails fast with the split name it actually holds.
+    const trainLabels = validateDataset(input.train.labels, 'train');
+    const developmentLabels = validateDataset(input.development.labels, 'development');
+    assertDisjointRoles(trainLabels, developmentLabels);
 
-    const train = vectorizeSplit(input.train.labels, input.train.captures);
-    const development = vectorizeSplit(input.development.labels, input.development.captures);
+    const train = vectorizeSplit(input.train.labels, input.train.captures, 'train');
+    const development = vectorizeSplit(input.development.labels, input.development.captures,
+        'development');
     assertTrainable(train.rows, 'Linear and LightGBM training');
     const dataset = {
         // Only scored pages reach evaluation; frame-root pages are counted

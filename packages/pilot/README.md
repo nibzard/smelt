@@ -86,6 +86,28 @@ checks. A rejected record leaves its file untouched, and the command exits
 nonzero. Applying over an earlier reviewed record replaces it, which lets a
 reviewer correct their own label. Run `labels:doctor` after every apply.
 
+## Training manifest
+
+`training:manifest` builds the manifest the trainer and the rules loop
+consume, from the corpus artifacts. Run it after a review session:
+
+```sh
+node packages/pilot/training-manifest.mjs \
+  --manifest corpus/manifests/splits.json \
+  --labels corpus/manifests/labels \
+  --out runs/training/manifest.json
+```
+
+The frozen test set is excluded structurally: the command reads the train
+and development splits only and never opens the test labels file
+(IDEA.md 3.2.4). The build is all-or-nothing. One unresolved page in
+either split refuses the whole run and names the pages, because the
+compact conversion drops unresolved pages and a quiet subset would
+under-train. Labels and manifest captures must agree exactly, a group may
+not span two splits, and the output directory may not be the labels
+directory. The written manifest also drives the rules loop, which needs
+only the development role.
+
 ## Review viewer
 
 `review:viewer` renders every queued capture as a standalone HTML page for

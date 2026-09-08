@@ -10,7 +10,8 @@
     "test": "node --test",
     "review:viewer": "node review-viewer-cli.mjs",
     "labels:doctor": "node labels-doctor.mjs",
-    "labels:apply": "node labels-apply.mjs"
+    "labels:apply": "node labels-apply.mjs",
+    "training:manifest": "node training-manifest.mjs"
   },
   "engines": {
     "node": ">=20"

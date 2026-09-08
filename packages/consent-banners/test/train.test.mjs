@@ -188,3 +188,31 @@ test('trains and compares rules, linear, and LightGBM baselines', () => {
     assert.equal(report.splits.development.frameRootPages, 1);
     assert.equal(report.splits.train.frameRootPages, 0);
 });
+
+test('a manifest role holding the wrong split file fails fast', () => {
+    const train = split('train', [consentPage('a', 'ga')]);
+    const development = split('development', [consentPage('b', 'gb')]);
+    // The train role points at the development labels file; before the
+    // guard, validateDataset(dataset, dataset.split) accepted any split in
+    // any role, so the frozen test file would have trained without a word.
+    const swapped = {...train, labels: development.labels};
+    assert.throws(() => trainConsentBaselines({schemaVersion: 1,
+        train: swapped, development}), /Expected train labels/);
+    const swappedDev = {...development, labels: train.labels};
+    assert.throws(() => trainConsentBaselines({schemaVersion: 1,
+        train, development: swappedDev}), /Expected development labels/);
+});
+
+test('pages shared between train and development fail', () => {
+    assert.throws(() => trainConsentBaselines({schemaVersion: 1,
+        train: split('train', [consentPage('leak-page', 'ga')]),
+        development: split('development', [consentPage('leak-page', 'gb')])
+    }), /Page ids appear in both train and development: leak-page/);
+});
+
+test('template groups shared between train and development fail', () => {
+    assert.throws(() => trainConsentBaselines({schemaVersion: 1,
+        train: split('train', [consentPage('a', 'shared-group')]),
+        development: split('development', [consentPage('b', 'shared-group')])
+    }), /Groups appear in both train and development: shared-group/);
+});

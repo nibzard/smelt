@@ -154,6 +154,13 @@ and writes an experiment log with the diff, gate results, usage, and verdict
 for every iteration. Nothing touches `rules.mjs` automatically; use
 `--rules-out` to export a winning source for human review.
 
+The frozen test set stays physically absent from loop and trainer inputs
+(IDEA.md 3.2.4). Both entry points pin their manifest roles to the declared
+split name, so a manifest that names the test labels file fails before any
+run. The trainer also refuses a page id or a template group that appears in
+both the train and the development role, because the corpus keeps every
+group inside exactly one split.
+
 ## npm export path
 
 Build the dist that ships to npm:
