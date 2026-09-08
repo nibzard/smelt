@@ -3,12 +3,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import assert from 'node:assert/strict';
+import {execFile} from 'node:child_process';
 import {mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {resolve} from 'node:path';
+import {promisify} from 'node:util';
 import {test} from 'node:test';
 
 import {buildReviewViewer, egressJurisdiction} from '../review-viewer.mjs';
+
+const exec = promisify(execFile);
 
 function snapshot() {
     return {
@@ -82,9 +86,10 @@ test('writes one positioned page per capture plus an index', async () => {
         assert.ok(page.includes('id="smelt-bar"'));
         assert.ok(page.includes('id="smelt-copy"'));
         // The copy button offers every field a reviewed label must carry,
-        // with a clipboard fallback and the JSON on the page.
+        // with a clipboard fallback, the JSON on the page, and a way to
+        // dismiss the JSON box again.
         for (const field of ['smelt-kind', 'smelt-jurisdiction', 'smelt-confidence',
-            'smelt-notes', 'smelt-json']) {
+            'smelt-notes', 'smelt-json', 'smelt-json-text', 'smelt-json-close']) {
             assert.ok(page.includes(`id="${field}"`), field);
         }
         assert.ok(page.includes('execCommand'));
@@ -573,7 +578,7 @@ test('torn and corrupt proposals lines do not sink the build', async () => {
                 verification: {status: 'pass', issues: []}}),
             '{"capture_id": "crash-page", "labels'
         ].join('\n'));
-        await buildReviewViewer({
+        const result = await buildReviewViewer({
             items: [{capture_id: 'crash-page', group: 'example.com'}],
             capturesDir,
             outDir,
@@ -581,15 +586,51 @@ test('torn and corrupt proposals lines do not sink the build', async () => {
         });
 
         // The last valid record wins: the positive resume answer, not the
-        // older negative.
+        // older negative. Both unreadable lines are counted for the CLI
+        // warning; the build still succeeds.
         const page = await readFile(resolve(outDir, 'crash-page.html'), 'utf8');
         assert.ok(page.includes('<details id="smelt-proposal">'));
         assert.ok(page.includes('data-smelt-root="e3"'));
         assert.ok(!page.includes('no banner on this page'));
+        assert.deepEqual(result.proposals, {records: 1, unreadableLines: 2});
     } finally {
         await rm(capturesDir, {recursive: true, force: true});
         await rm(outDir, {recursive: true, force: true});
         await rm(resolve(outDir, '..', 'torn-proposals.jsonl'), {force: true});
+    }
+});
+
+test('a proposals file with no readable records reports zero, not silence', async () => {
+    const capturesDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-pp-'));
+    const outDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-pp-out-'));
+    const proposalsPath = resolve(outDir, '..', 'pretty-proposals.json');
+    try {
+        await writeCapture(capturesDir, 'pretty-page', 'example.com', 'initial label');
+        // A pretty-printed JSON document parses to nothing line by line,
+        // so every advisory panel goes missing. The build still succeeds,
+        // but the result names the zero-record state, so the CLI warns
+        // instead of rendering a silent no-panel set.
+        await writeFile(proposalsPath, JSON.stringify({
+            capture_id: 'pretty-page',
+            labels: {has_banner: true, banner_root: 'e3', banner_kind: 'dialog',
+                jurisdiction: 'eea', confidence: 0.9, evidence: []},
+            verification: {status: 'pass', issues: []}
+        }, null, 2));
+        const result = await buildReviewViewer({
+            items: [{capture_id: 'pretty-page', group: 'example.com'}],
+            capturesDir,
+            outDir,
+            proposalsPath
+        });
+
+        const page = await readFile(resolve(outDir, 'pretty-page.html'), 'utf8');
+        assert.ok(!page.includes('<details id="smelt-proposal">'));
+        assert.equal(result.proposals.records, 0);
+        assert.ok(result.proposals.unreadableLines > 0, 'junk lines are counted');
+    } finally {
+        await rm(capturesDir, {recursive: true, force: true});
+        await rm(outDir, {recursive: true, force: true});
+        await rm(proposalsPath, {force: true});
     }
 });
 
@@ -607,5 +648,51 @@ test('a missing proposals file fails the build', async () => {
     } finally {
         await rm(capturesDir, {recursive: true, force: true});
         await rm(outDir, {recursive: true, force: true});
+    }
+});
+
+test('the CLI warns when a proposals file is unusable', async () => {
+    const capturesDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-cli-'));
+    const outDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-cli-out-'));
+    const labelsDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-cli-labels-'));
+    try {
+        await writeCapture(capturesDir, 'junk-page', 'example.com', 'initial label');
+        const queuePath = resolve(capturesDir, 'queue.json');
+        await writeFile(queuePath, JSON.stringify({schemaVersion: 1,
+            items: [{capture_id: 'junk-page', group: 'example.com'}]}));
+        const cli = new URL('../review-viewer-cli.mjs', import.meta.url).pathname;
+        const run = proposalsPath => exec(process.execPath,
+            [cli, '--queue', queuePath, '--captures', capturesDir,
+             '--labels', labelsDir, '--out', outDir, '--proposals', proposalsPath]);
+        const validRecord = () => JSON.stringify({capture_id: 'junk-page',
+            adapter: {id: 'fake-teacher'},
+            labels: {has_banner: false, banner_root: null, banner_kind: 'unknown',
+                jurisdiction: 'unknown', confidence: 0.6, evidence: []},
+            verification: {status: 'pass', issues: []}});
+
+        // A clean file prints no warning.
+        const cleanPath = resolve(capturesDir, 'clean.jsonl');
+        await writeFile(cleanPath, `${validRecord()}\n`);
+        const clean = await run(cleanPath);
+        assert.equal(clean.stderr, '');
+
+        // One corrupt line among valid records is named in the warning.
+        const mixedPath = resolve(capturesDir, 'mixed.jsonl');
+        await writeFile(mixedPath, `{"capture_id": "junk-p\n${validRecord()}\n`);
+        const mixed = await run(mixedPath);
+        assert.match(mixed.stderr, /skipped 1 unreadable proposals line/);
+
+        // A pretty-printed document holds no readable record at all; the
+        // warning names that state, so the build cannot pass for a
+        // normal no-proposal run.
+        const prettyPath = resolve(capturesDir, 'pretty.json');
+        await writeFile(prettyPath,
+            JSON.stringify({capture_id: 'junk-page'}, null, 2));
+        const pretty = await run(prettyPath);
+        assert.match(pretty.stderr, /no readable proposals records/);
+    } finally {
+        await rm(capturesDir, {recursive: true, force: true});
+        await rm(outDir, {recursive: true, force: true});
+        await rm(labelsDir, {recursive: true, force: true});
     }
 });

@@ -450,6 +450,26 @@ test('the CLI refuses a paid run without a test-split manifest', async () => {
              '--teacher', 'anthropic', '--out', path.join(dir, 'p.jsonl')],
             {env: {...process.env, ANTHROPIC_API_KEY: 'k'}}),
             /no splits\.test array/);
+
+        // A splits.test array that yields no readable ids excludes nothing
+        // either: an empty array, or entries keyed like queue records
+        // instead of manifest entries, must stop the paid batch instead of
+        // warning and continuing.
+        const emptySplit = path.join(dir, 'empty-split.json');
+        await writeFile(emptySplit, JSON.stringify({splits: {test: []}}));
+        await assert.rejects(exec(process.execPath,
+            [cli, '--queue', queuePath, '--manifest', emptySplit,
+             '--teacher', 'anthropic', '--out', path.join(dir, 'p.jsonl')],
+            {env: {...process.env, ANTHROPIC_API_KEY: 'k'}}),
+            /no readable test captures/);
+        const wrongKey = path.join(dir, 'wrong-key.json');
+        await writeFile(wrongKey,
+            JSON.stringify({splits: {test: [{capture_id: 'x-example'}]}}));
+        await assert.rejects(exec(process.execPath,
+            [cli, '--queue', queuePath, '--manifest', wrongKey,
+             '--teacher', 'anthropic', '--out', path.join(dir, 'p.jsonl')],
+            {env: {...process.env, ANTHROPIC_API_KEY: 'k'}}),
+            /no readable test captures/);
     } finally {
         await rm(dir, {recursive: true, force: true});
     }

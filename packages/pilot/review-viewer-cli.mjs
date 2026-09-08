@@ -27,13 +27,30 @@ try {
     if (!Array.isArray(items) || items.length === 0) {
         throw new Error(`Review queue holds no items: ${queuePath}`);
     }
+    const proposalsPath = option('proposals');
     const result = await buildReviewViewer({
         items,
         capturesDir: option('captures', 'corpus/captures'),
         outDir: option('out', 'runs/review-viewer'),
         labelsDir: option('labels', 'corpus/manifests/labels'),
-        proposalsPath: option('proposals')
+        proposalsPath
     });
+    // A proposals file that exists but parses to nothing must not look
+    // like a normal no-proposal build. The wrong-file route (for example
+    // a pretty-printed JSON document) is a warning, because the pages
+    // still render; advisory panels alone go missing.
+    if (result.proposals) {
+        if (result.proposals.records === 0) {
+            console.error(`Warning: no readable proposals records in `
+                + `${proposalsPath}. Every page renders without an advisory `
+                + 'panel. The file must hold one JSON record per line.');
+        } else if (result.proposals.unreadableLines > 0) {
+            console.error(`Warning: skipped ${result.proposals.unreadableLines} `
+                + `unreadable proposals line(s) in ${proposalsPath}. Those `
+                + 'captures render without a panel unless a valid record '
+                + 'appears later in the file.');
+        }
+    }
     console.log(JSON.stringify({pages: result.pages, index: result.indexPath}));
 } catch (error) {
     console.error(error.message);

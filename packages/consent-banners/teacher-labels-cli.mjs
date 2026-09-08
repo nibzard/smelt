@@ -49,7 +49,9 @@ async function readJson(file) {
 // test labels file (IDEA.md 3.2.4 and 3.3.6). A manifest without a test
 // split array is refused rather than treated as "nothing to exclude": a
 // wrong or stale manifest path must stop the batch, not silently send the
-// frozen test pages to the vendor.
+// frozen test pages to the vendor. A paid run also refuses a test array
+// that yields no readable ids — an empty array, or entries keyed anything
+// but "id" — because that state proves no exclusion either.
 async function testCaptureIds(manifestPath, requireSplit) {
     if (typeof manifestPath !== 'string' || manifestPath.length === 0) {
         if (requireSplit) {
@@ -70,6 +72,11 @@ async function testCaptureIds(manifestPath, requireSplit) {
         .map(entry => entry?.id)
         .filter(id => typeof id === 'string');
     if (ids.length === 0) {
+        if (requireSplit) {
+            throw new Error(`${manifestPath} declares no readable test captures: `
+                + 'its splits.test array holds no entry with an "id" string, so '
+                + 'no capture is provably excluded from teaching.');
+        }
         console.error('Warning: the manifest declares no test captures; '
             + 'nothing was excluded from teaching.');
     }

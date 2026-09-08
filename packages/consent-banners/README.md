@@ -160,9 +160,11 @@ Pass `--manifest` so the frozen test captures are excluded: the pilot test
 pages stay teacher-free and 100 percent human-verified (IDEA.md 3.3.6).
 The manifest lists capture ids and paths, not labels, so the exclusion
 never opens the test labels file. A run without `--manifest` refuses to
-start, and so does a file without a `splits.test` array — a wrong or
-stale manifest path must stop the batch, not silently teach the test
-pages. Only `--dry-run` runs without a manifest.
+start, and so does a file without a `splits.test` array, or a file whose
+test array holds no readable capture ids (an empty array, or entries
+keyed anything but `id`) — a wrong or stale manifest path must stop the
+batch, not silently teach the test pages. Only `--dry-run` runs without a
+manifest.
 
 The batch is resumable. A capture with a full record in the output file is
 skipped, so an interrupted run continues where it stopped. A torn final

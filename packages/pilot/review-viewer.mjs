@@ -98,7 +98,12 @@ const OVERLAY = `
   #smelt-json { position: fixed; top: 100px; left: 12px; right: 12px;
       z-index: 2147483647; background: #101014; color: #8f8;
       font: 11px/1.4 monospace; padding: 8px; border: 1px solid #444;
-      white-space: pre-wrap; max-height: 40%; overflow: auto; }
+      max-height: 40%; overflow: auto; }
+  #smelt-json pre { margin: 0; white-space: pre-wrap; }
+  #smelt-json .smelt-json-head { color: #eee; margin: 0 0 4px 0; }
+  #smelt-json button { float: right; font: 11px monospace; padding: 1px 8px;
+      background: #2a2a33; color: #eee; border: 1px solid #555;
+      cursor: pointer; }
 </style>
 <div id="smelt-bar">
   __NAV_HTML__
@@ -132,7 +137,11 @@ const OVERLAY = `
   __PROPOSAL_HTML__
 </div>
 <div id="smelt-hover"></div>
-<pre id="smelt-json" hidden></pre>
+<div id="smelt-json" hidden>
+  <p class="smelt-json-head"><button id="smelt-json-close" type="button">Close</button>
+  Label JSON — the Close button or the Esc key hides this box.</p>
+  <pre id="smelt-json-text"></pre>
+</div>
 <script>
   (function () {
       function start() {
@@ -145,6 +154,8 @@ const OVERLAY = `
           var bar = document.getElementById('smelt-bar');
           var hover = document.getElementById('smelt-hover');
           var jsonBox = document.getElementById('smelt-json');
+          var jsonText = document.getElementById('smelt-json-text');
+          var jsonClose = document.getElementById('smelt-json-close');
           var button = document.getElementById('smelt-copy');
           var kind = document.getElementById('smelt-kind');
           var jurisdiction = document.getElementById('smelt-jurisdiction');
@@ -394,7 +405,7 @@ const OVERLAY = `
               // Always show the JSON, so the reviewer can check it and copy it
               // by hand when the clipboard is unavailable.
               jsonBox.hidden = false;
-              jsonBox.textContent = text;
+              jsonText.textContent = text;
               var report = function (ok) {
                   button.textContent = ok ? 'Copied ' + selected.length + ' root(s)'
                       : 'Clipboard blocked - copy the JSON below';
@@ -405,6 +416,18 @@ const OVERLAY = `
                       function () { report(legacyCopy(text)); });
               } else {
                   report(legacyCopy(text));
+              }
+          });
+
+          // While the JSON box is shown it covers replayed content, and
+          // chrome clicks never select behind it. The reviewer needs a fast
+          // way back to the page: the close button, or Esc.
+          jsonClose.addEventListener('click', function () {
+              jsonBox.hidden = true;
+          });
+          document.addEventListener('keydown', function (event) {
+              if (event.key === 'Escape' && !jsonBox.hidden) {
+                  jsonBox.hidden = true;
               }
           });
 
@@ -496,16 +519,20 @@ function neutralizeRemoteLoads(snapshot) {
 // and skips the failure records a batch run writes without labels. A torn
 // or corrupt line is skipped, not fatal: the batch writer deliberately
 // keeps such lines on resume (it only adds a separator newline), so a
-// crash-recovered proposals file is a normal input here.
+// crash-recovered proposals file is a normal input here. The unreadable
+// line count travels back to the caller, so a wrong file format is a
+// warning instead of a silent zero-panel build.
 async function readProposals(proposalsPath) {
     const text = await readFile(proposalsPath, 'utf8');
     const proposals = new Map();
+    let unreadable = 0;
     for (const line of text.split('\n')) {
         if (line.trim() === '') continue;
         let record;
         try {
             record = JSON.parse(line);
         } catch {
+            unreadable += 1;
             continue;
         }
         if (!record || typeof record.capture_id !== 'string' || !record.labels) continue;
@@ -524,7 +551,7 @@ async function readProposals(proposalsPath) {
                 .map(issue => String(issue?.code ?? 'issue'))
         });
     }
-    return proposals;
+    return {proposals, unreadable};
 }
 
 // Neighbor links keep the reviewer inside the pages; the index stays one
@@ -705,10 +732,13 @@ export async function buildReviewViewer(input) {
         && input.labelsDir.length > 0
         ? await readLabelStubs(input.labelsDir)
         : {stubs: new Map(), warnings: []};
-    const proposals = typeof input.proposalsPath === 'string'
-        && input.proposalsPath.length > 0
-        ? await readProposals(input.proposalsPath)
-        : new Map();
+    let proposals = new Map();
+    let proposalStats = null;
+    if (typeof input.proposalsPath === 'string' && input.proposalsPath.length > 0) {
+        const read = await readProposals(input.proposalsPath);
+        proposals = read.proposals;
+        proposalStats = {records: proposals.size, unreadableLines: read.unreadable};
+    }
     const seen = new Set();
     await mkdir(outDir, {recursive: true});
     let pages = 0;
@@ -733,7 +763,7 @@ export async function buildReviewViewer(input) {
     }
     const indexPath = path.join(outDir, 'index.html');
     await writeFile(indexPath, indexPage(items, labelStubs, warnings));
-    return {pages, indexPath};
+    return {pages, indexPath, proposals: proposalStats};
 }
 
 async function readJson(file) {

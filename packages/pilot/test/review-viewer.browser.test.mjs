@@ -135,7 +135,7 @@ async function launchBrowser(t) {
 
 async function copiedLabel(page) {
     await page.click('#smelt-copy');
-    const text = await page.locator('#smelt-json').textContent();
+    const text = await page.locator('#smelt-json-text').textContent();
     // The JSON box fills before any clipboard work, so the label content
     // never depends on clipboard permissions.
     return JSON.parse(text);
@@ -412,9 +412,64 @@ test('browser: clicks on the bar and the JSON box never select behind them',
             assert.equal(hoverShown, 'none');
             await page.click('#smelt-copy');
             const label = JSON.parse(
-                await page.locator('#smelt-json').textContent());
+                await page.locator('#smelt-json-text').textContent());
             assert.deepEqual(label.acceptable_roots, []);
             assert.deepEqual(validateConsentLabels(datasetFor(label)), []);
+        } finally {
+            await browser.close();
+            await cleanup();
+        }
+    });
+
+test('browser: the JSON box closes and the covered element is clickable again',
+    {skip: !playwright}, async t => {
+        const {pagePath, cleanup} = await writeViewerPage('example-com-eu');
+        const browser = await launchBrowser(t);
+        if (!browser) return void await cleanup();
+        try {
+            const page = await browser.newPage();
+            await page.goto(`file://${pagePath}`);
+            const boxHidden = () => page.evaluate(() =>
+                document.getElementById('smelt-json').hidden);
+            const selection = () => page.locator('#smelt-selection').textContent();
+
+            // Copy shows the box over the replayed content. A click at a
+            // point the box covers selects nothing while it is shown.
+            await page.click('#smelt-copy');
+            assert.equal(await boxHidden(), false);
+            const point = await page.evaluate(() => {
+                const box = document.getElementById('smelt-json')
+                    .getBoundingClientRect();
+                const main = document.querySelector('[data-smelt-replay-id="e2"]')
+                    .getBoundingClientRect();
+                const top = Math.max(box.top, main.top);
+                const bottom = Math.min(box.bottom, main.bottom);
+                if (bottom <= top) return null;
+                return {x: Math.round(Math.max(box.left, main.left) + 40),
+                    y: Math.round((top + bottom) / 2)};
+            });
+            assert.ok(point, 'the JSON box overlaps the replayed content');
+            await page.mouse.click(point.x, point.y);
+            assert.equal(await selection(), '');
+
+            // Esc hides the box; the same click now reaches the element.
+            await page.keyboard.press('Escape');
+            assert.equal(await boxHidden(), true);
+            await page.mouse.click(point.x, point.y);
+            assert.equal(await selection(), ' roots: [e2]');
+
+            // Copy shows it again, and the close button hides it too.
+            await page.click('#smelt-copy');
+            assert.equal(await boxHidden(), false);
+            const label = JSON.parse(
+                await page.locator('#smelt-json-text').textContent());
+            assert.deepEqual(label.acceptable_roots, ['e2']);
+            await page.click('#smelt-json-close');
+            assert.equal(await boxHidden(), true);
+            // The toggle click now reaches e2 again and removes it; a box
+            // that stayed shown would have left the selection untouched.
+            await page.mouse.click(point.x, point.y);
+            assert.equal(await selection(), ' roots: []');
         } finally {
             await browser.close();
             await cleanup();

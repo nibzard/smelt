@@ -178,7 +178,9 @@ anything and never enters the copied record — your clicks alone build
 the label. Review the page first and open the panel when unsure. A torn
 or corrupt line in the proposals file is skipped: the file a crashed and
 resumed batch leaves behind still renders, and the last valid record per
-capture wins.
+capture wins. The build prints a warning when the file holds unreadable
+lines, and another when it holds no readable record at all, so a wrong
+file cannot pass for a normal no-proposal build.
 
 Each page rebuilds the top-frame DOM of the capture and positions every
 element at its captured rectangle, composed through nested ancestors. Hover
@@ -198,7 +200,9 @@ before a review session: CI has no browser, so those tests skip there
 and only the local run checks the click behavior. The group comes
 from the labels file, so the record cannot rewrite the group that split the
 corpus even when the queue disagrees. Clicks on the control bar, the JSON
-box, and blank page areas never change the selection.
+box, and blank page areas never change the selection. The JSON box hides
+again with its **Close** button or the **Esc** key, which frees the
+content it covered for clicking.
 
 Wrapped inline elements need care. Each element is placed at its bounding
 box. A wrapped inline element, such as a link or span that spans several
