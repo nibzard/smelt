@@ -278,3 +278,123 @@ test('inputs are required', async () => {
     await assert.rejects(() => applyLabels({records: [{}]}),
         /Expected a labels directory/);
 });
+
+test('changing an already reviewed record needs the replace option', async () => {
+    const world = await buildWorld();
+    try {
+        // Session 1 reviews a-eu; session 2 corrects it.
+        await applyLabels({records: [reviewedPage('a-eu', 'a.test', 'first pick')],
+            labelsDir: world.labelsDir, labelsSchemaPath});
+        const afterFirst = await readFile(trainFile(world), 'utf8');
+
+        // Re-running session 1, or applying session 2 without the
+        // option, must not silently revert the stored record.
+        const correction = reviewedPage('a-eu', 'a.test', 'corrected root');
+        const refused = await applyLabels({records: [correction],
+            labelsDir: world.labelsDir, labelsSchemaPath});
+        assert.deepEqual(refused.applied, []);
+        assert.equal(refused.rejected[0].id, 'a-eu');
+        assert.match(refused.rejected[0].reason, /pass --replace to correct it/);
+        assert.equal(await readFile(trainFile(world), 'utf8'), afterFirst);
+
+        const {applied, rejected} = await applyLabels({records: [correction],
+            labelsDir: world.labelsDir, labelsSchemaPath, replaceReviewed: true});
+        assert.deepEqual(applied, ['a-eu']);
+        assert.deepEqual(rejected, []);
+        const train = JSON.parse(await readFile(trainFile(world), 'utf8'));
+        assert.equal(train.pages[0].review_notes, 'corrected root');
+    } finally {
+        await rm(world.root, {recursive: true, force: true});
+    }
+});
+
+test('an identical record re-applies without the replace option', async () => {
+    const world = await buildWorld();
+    try {
+        const record = reviewedPage('a-eu', 'a.test');
+        await applyLabels({records: [record], labelsDir: world.labelsDir,
+            labelsSchemaPath});
+        // Re-running the same records file stays a no-op-with-success,
+        // which is what healing an interrupted batch relies on.
+        const {applied, rejected} = await applyLabels({records: [record],
+            labelsDir: world.labelsDir, labelsSchemaPath});
+        assert.deepEqual(applied, ['a-eu']);
+        assert.deepEqual(rejected, []);
+    } finally {
+        await rm(world.root, {recursive: true, force: true});
+    }
+});
+
+test('a reviewed page is never demoted back to unresolved', async () => {
+    const world = await buildWorld();
+    try {
+        await applyLabels({records: [reviewedPage('a-eu', 'a.test')],
+            labelsDir: world.labelsDir, labelsSchemaPath});
+        const before = await readFile(trainFile(world), 'utf8');
+
+        // A stub-shaped record copied from a labels file instead of the
+        // viewer's copy button. Even --replace cannot destroy the review.
+        const {applied, rejected} = await applyLabels({
+            records: [stubPage('a-eu', 'a.test')],
+            labelsDir: world.labelsDir, labelsSchemaPath, replaceReviewed: true});
+        assert.deepEqual(applied, []);
+        assert.match(rejected[0].reason, /never demotes a reviewed page/);
+        assert.equal(await readFile(trainFile(world), 'utf8'), before);
+    } finally {
+        await rm(world.root, {recursive: true, force: true});
+    }
+});
+
+test('each updated file keeps a .bak of its previous content', async () => {
+    const world = await buildWorld();
+    try {
+        const before = await readFile(trainFile(world), 'utf8');
+        await applyLabels({records: [reviewedPage('a-eu', 'a.test')],
+            labelsDir: world.labelsDir, labelsSchemaPath});
+
+        assert.equal(await readFile(`${trainFile(world)}.bak`, 'utf8'), before);
+        await assert.rejects(() => readFile(`${trainFile(world)}.tmp`), /ENOENT/);
+    } finally {
+        await rm(world.root, {recursive: true, force: true});
+    }
+});
+
+test('a staging failure mid-batch reports it and changes no file', async () => {
+    const world = await buildWorld();
+    try {
+        // A directory where the second split's staged temp file must go.
+        // Records touch train first, so train stages, development fails,
+        // and nothing may be swapped in.
+        const developmentFile = path.join(world.labelsDir, 'development.labels.json');
+        await mkdir(`${developmentFile}.tmp`);
+        const beforeTrain = await readFile(trainFile(world), 'utf8');
+        const beforeDevelopment = await readFile(developmentFile, 'utf8');
+
+        await assert.rejects(() => applyLabels({
+            records: [reviewedPage('a-eu', 'a.test'), reviewedPage('b-eu', 'b.test')],
+            labelsDir: world.labelsDir, labelsSchemaPath}), /Updated so far: none/);
+        assert.equal(await readFile(trainFile(world), 'utf8'), beforeTrain);
+        assert.equal(await readFile(developmentFile, 'utf8'), beforeDevelopment);
+    } finally {
+        await rm(world.root, {recursive: true, force: true});
+    }
+});
+
+test('a record carrying prototype-chain fields is rejected', async () => {
+    const world = await buildWorld();
+    try {
+        const before = await readFile(trainFile(world), 'utf8');
+        // Built from JSON text, the way a crafted records file arrives:
+        // "__proto__" is a real own field that JSON round trips keep.
+        const record = JSON.parse(JSON.stringify(reviewedPage('a-eu', 'a.test'))
+            .replace('"id":"a-eu"', '"id":"a-eu","__proto__":{"evil":1}'));
+        const {applied, rejected} = await applyLabels({records: [record],
+            labelsDir: world.labelsDir, labelsSchemaPath});
+
+        assert.deepEqual(applied, []);
+        assert.match(rejected[0].reason, /unexpected field "__proto__"/);
+        assert.equal(await readFile(trainFile(world), 'utf8'), before);
+    } finally {
+        await rm(world.root, {recursive: true, force: true});
+    }
+});

@@ -91,3 +91,22 @@ test('validateSchema enforces string and number bounds', () => {
         pages: [stubPage()]}, labelsSchema);
     assert.deepEqual(clean, []);
 });
+
+test('validateSchema rejects prototype-chain keys as unknown fields', () => {
+    // JSON.parse keeps "__proto__" as an own enumerable property. A plain
+    // schema.properties[key] lookup resolves it (and "constructor",
+    // "toString", and friends) through the prototype chain, so those keys
+    // would slip past additionalProperties: false and validate against
+    // Object.prototype, which constrains nothing.
+    const poisoned = JSON.parse('{"id": "proto-eu", "label_status": "unresolved",'
+        + ' "__proto__": {"evil": 1}, "constructor": 2, "toString": 3}');
+    const errors = validateSchema(
+        {schema_version: 1, split: 'train', pages: [poisoned]}, labelsSchema);
+    const joined = errors.join('\n');
+    assert.match(joined, /unexpected field "__proto__"/);
+    assert.match(joined, /unexpected field "constructor"/);
+    assert.match(joined, /unexpected field "toString"/);
+    // No error claims the poisoned fields were validated: the only
+    // messages for them are the unexpected-field rejections.
+    assert.ok(!joined.includes('must be of type'), joined);
+});

@@ -10,7 +10,7 @@
 // because the compact conversion drops unresolved pages, and a quiet
 // subset would under-train without anyone noticing.
 
-import {mkdir, readFile, writeFile} from 'node:fs/promises';
+import {mkdir, readFile, realpath, rename, writeFile} from 'node:fs/promises';
 import path from 'node:path';
 
 import {toEvaluationDataset} from './labels.mjs';
@@ -20,8 +20,28 @@ function requireValue(condition, message) {
     if (!condition) throw new TypeError(message);
 }
 
+// Two paths name the same file when their real paths match. A lexical
+// resolve is not enough: a symlinked checkout or a ".." spelling can
+// hide the identity of the directory or file being written.
+async function realPath(file) {
+    try {
+        return await realpath(file);
+    } catch {
+        return path.resolve(file);
+    }
+}
+
 async function readJson(file) {
     return JSON.parse(await readFile(file, 'utf8'));
+}
+
+// Write through a sibling temp file and an atomic rename, so a failure
+// never leaves a half-written output or fresh compact labels beside a
+// stale manifest that references them.
+async function writeFileAtomic(file, text) {
+    const tmp = `${file}.tmp`;
+    await writeFile(tmp, text);
+    await rename(tmp, file);
 }
 
 /**
@@ -98,16 +118,28 @@ export async function buildTrainingManifest(input) {
     await mkdir(outDir, {recursive: true});
     // The compact files carry the same basenames as the canonical labels.
     // Writing them into the labels directory would overwrite the reviewed
-    // records with compact copies, so refuse that outright.
-    requireValue(path.resolve(outDir) !== path.resolve(labelsDir),
+    // records with compact copies, so refuse that outright — by real
+    // path, so a symlink or a ".." spelling cannot hide the identity.
+    requireValue(await realPath(outDir) !== await realPath(labelsDir),
         'The output directory must differ from the labels directory, '
             + 'or the compact files would overwrite the reviewed labels.');
+    // The output may not be the input either: writing over the split
+    // manifest destroys the artifact prepare:corpus owns.
+    requireValue(await realPath(outPath) !== await realPath(manifestPath),
+        'The output path must differ from the split manifest path, '
+            + 'or the build would overwrite the corpus manifest.');
+    const compactBasenames = Object.keys(roles)
+        .map(split => `${split}.labels.json`);
+    requireValue(!compactBasenames.includes(path.basename(outPath)),
+        `The output manifest basename must not be `
+            + `${compactBasenames.join(' or ')}, or the manifest write `
+            + 'would overwrite a compact labels file.');
     const files = [];
     const manifest = {schemaVersion: 1, generatedAt: new Date().toISOString()};
     for (const split of Object.keys(roles)) {
         const {compact, entries} = roles[split];
         const labelsOut = path.join(outDir, `${split}.labels.json`);
-        await writeFile(labelsOut, `${JSON.stringify(compact, null, 2)}\n`);
+        await writeFileAtomic(labelsOut, `${JSON.stringify(compact, null, 2)}\n`);
         files.push(labelsOut);
         manifest[split] = {
             labels: path.basename(labelsOut),
@@ -118,7 +150,7 @@ export async function buildTrainingManifest(input) {
             }))
         };
     }
-    await writeFile(outPath, `${JSON.stringify(manifest, null, 2)}\n`);
+    await writeFileAtomic(outPath, `${JSON.stringify(manifest, null, 2)}\n`);
     files.push(outPath);
     return {manifest, files};
 }

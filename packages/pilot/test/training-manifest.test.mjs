@@ -8,7 +8,7 @@
 // subset of a split.
 
 import assert from 'node:assert/strict';
-import {mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
+import {mkdir, mkdtemp, readFile, rm, symlink, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {test} from 'node:test';
@@ -183,6 +183,74 @@ test('writing into the labels directory is refused', async () => {
         await rm(world.root, {recursive: true, force: true});
     }
 });
+
+test('an output path aliased to the labels directory is refused', async () => {
+    // A ".." spelling of the same directory. A lexical path.resolve
+    // collapses it, but only a real-path comparison catches every alias.
+    const world = await buildWorld({
+        trainPages: [reviewedPage('a-eu', 'a.test')],
+        developmentPages: [reviewedPage('b-eu', 'b.test')]
+    });
+    try {
+        await assert.rejects(buildTrainingManifest({
+            manifestPath: world.manifestPath, labelsDir: world.labelsDir,
+            outPath: `${world.labelsDir}/../labels/manifest.json`}),
+            /compact files would overwrite the reviewed labels/);
+    } finally {
+        await rm(world.root, {recursive: true, force: true});
+    }
+});
+
+test('a symlinked output directory is refused',
+    {skip: process.platform === 'win32'}, async () => {
+        const world = await buildWorld({
+            trainPages: [reviewedPage('a-eu', 'a.test')],
+            developmentPages: [reviewedPage('b-eu', 'b.test')]
+        });
+        try {
+            const link = path.join(world.root, 'link-to-labels');
+            await symlink(world.labelsDir, link);
+            await assert.rejects(buildTrainingManifest({
+                manifestPath: world.manifestPath, labelsDir: world.labelsDir,
+                outPath: path.join(link, 'manifest.json')}),
+                /compact files would overwrite the reviewed labels/);
+        } finally {
+            await rm(world.root, {recursive: true, force: true});
+        }
+    });
+
+test('writing over the input split manifest is refused', async () => {
+    const world = await buildWorld({
+        trainPages: [reviewedPage('a-eu', 'a.test')],
+        developmentPages: [reviewedPage('b-eu', 'b.test')]
+    });
+    try {
+        const before = await readFile(world.manifestPath, 'utf8');
+        await assert.rejects(buildTrainingManifest({
+            manifestPath: world.manifestPath, labelsDir: world.labelsDir,
+            outPath: world.manifestPath}),
+            /must differ from the split manifest path/);
+        assert.equal(await readFile(world.manifestPath, 'utf8'), before);
+    } finally {
+        await rm(world.root, {recursive: true, force: true});
+    }
+});
+
+test('an output basename colliding with a compact labels file is refused',
+    async () => {
+        const world = await buildWorld({
+            trainPages: [reviewedPage('a-eu', 'a.test')],
+            developmentPages: [reviewedPage('b-eu', 'b.test')]
+        });
+        try {
+            await assert.rejects(buildTrainingManifest({
+                manifestPath: world.manifestPath, labelsDir: world.labelsDir,
+                outPath: path.join(path.dirname(world.outPath), 'train.labels.json')}),
+                /must not be train\.labels\.json or development\.labels\.json/);
+        } finally {
+            await rm(world.root, {recursive: true, force: true});
+        }
+    });
 
 test('inputs are required', async () => {
     await assert.rejects(buildTrainingManifest({}), /Expected a split manifest path/);

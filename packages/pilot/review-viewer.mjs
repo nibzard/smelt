@@ -417,7 +417,7 @@ function viewerPage(item, snapshot, features, metadata, labelStub) {
     return `${html.slice(0, bodyEnd)}${overlay}${html.slice(bodyEnd)}`;
 }
 
-function indexPage(items, stubs) {
+function indexPage(items, stubs, warnings = []) {
     const statusOf = item => stubs.get(item.capture_id)?.label_status;
     // Progress counts and ordering apply only when label stubs were read;
     // without a labels directory the index stays a plain queue listing.
@@ -435,6 +435,11 @@ function indexPage(items, stubs) {
     const intro = known
         ? `${items.length} captures, ${reviewed.length} reviewed, ${pending.length} remaining.`
         : `${items.length} captures.`;
+    const warningLines = warnings.length > 0
+        ? `\n    <p class="warn"><strong>Warning:</strong> the counts above may be `
+            + `wrong; run labels:doctor.</p>\n`
+            + warnings.map(text => `    <p class="warn">${escapeHtml(text)}</p>`).join('\n')
+        : '';
     return `<!doctype html>
 <html lang="en">
 <head>
@@ -445,12 +450,13 @@ function indexPage(items, stubs) {
         li { margin: 2px 0; }
         .done { color: #080; }
         .open { color: #a60; }
+        .warn { color: #a00; }
     </style>
 </head>
 <body>
     <h1>Smelt review queue</h1>
     <p>${intro} Open a capture, click the banner root, and copy the label JSON
-    into your records file; labels:apply writes it into the labels files.</p>
+    into your records file; labels:apply writes it into the labels files.</p>${warningLines}
     <ol>
 ${rows}
     </ol>
@@ -461,19 +467,34 @@ ${rows}
 
 // Existing label stubs carry the human review context: notes the reviewer
 // may have added, and the group the labels file records. One map across all
-// three splits, because a page id is unique across the corpus.
+// three splits, because a page id is unique across the corpus. The first
+// split to record an id wins, and every anomaly is returned as a warning
+// the index shows; a silent last-write-wins merge could display a test
+// stub over an unresolved train record, and a skipped corrupt file could
+// hide that review progress numbers are wrong.
 async function readLabelStubs(labelsDir) {
     const stubs = new Map();
+    const warnings = [];
     for (const split of ['train', 'development', 'test']) {
         const file = path.join(labelsDir, `${split}.labels.json`);
+        let dataset;
         try {
-            const dataset = JSON.parse(await readFile(file, 'utf8'));
-            for (const page of dataset.pages ?? []) stubs.set(page.id, page);
-        } catch {
-            // A missing or unreadable split file just means no prefill.
+            dataset = JSON.parse(await readFile(file, 'utf8'));
+        } catch (error) {
+            if (error.code === 'ENOENT') continue;
+            warnings.push(`${file} is unreadable and was skipped: ${error.message}`);
+            continue;
+        }
+        for (const page of dataset.pages ?? []) {
+            if (stubs.has(page.id)) {
+                warnings.push(`page id ${page.id} appears in more than one split `
+                    + 'file; the first one wins');
+                continue;
+            }
+            stubs.set(page.id, page);
         }
     }
-    return stubs;
+    return {stubs, warnings};
 }
 
 /**
@@ -502,8 +523,10 @@ export async function buildReviewViewer(input) {
         'Expected a captures directory.');
     requireValue(typeof outDir === 'string' && outDir.length > 0,
         'Expected an output directory.');
-    const labelStubs = typeof input.labelsDir === 'string' && input.labelsDir.length > 0
-        ? await readLabelStubs(input.labelsDir) : new Map();
+    const {stubs: labelStubs, warnings} = typeof input.labelsDir === 'string'
+        && input.labelsDir.length > 0
+        ? await readLabelStubs(input.labelsDir)
+        : {stubs: new Map(), warnings: []};
     const seen = new Set();
     await mkdir(outDir, {recursive: true});
     let pages = 0;
@@ -525,7 +548,7 @@ export async function buildReviewViewer(input) {
         pages++;
     }
     const indexPath = path.join(outDir, 'index.html');
-    await writeFile(indexPath, indexPage(items, labelStubs));
+    await writeFile(indexPath, indexPage(items, labelStubs, warnings));
     return {pages, indexPath};
 }
 

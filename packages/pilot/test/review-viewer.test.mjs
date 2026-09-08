@@ -211,6 +211,80 @@ test('prefills notes and group from the labels file, not the queue', async () =>
     }
 });
 
+test('index keeps the first split for a duplicated page id and warns', async () => {
+    const capturesDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-dup-'));
+    const outDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-dup-out-'));
+    const labelsDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-dup-labels-'));
+    try {
+        await writeCapture(capturesDir, 'done-eu', 'done.test', 'initial label');
+        await writeCapture(capturesDir, 'open-eu', 'open.test', 'initial label');
+        const stub = (id, group, status) => ({id, group, label_status: status,
+            has_banner: null, acceptable_roots: [], banner_root: null,
+            banner_kind: null, jurisdiction: null,
+            frame: {state: 'unknown', frame_id: null, element_id: null},
+            evidence: [], confidence: null,
+            review_notes: 'awaiting initial human label'});
+        // train says open-eu is unresolved; development carries a stale
+        // reviewed copy of the same id. The first split wins, and the
+        // index says so instead of silently reporting false progress.
+        await writeFile(resolve(labelsDir, 'train.labels.json'), JSON.stringify({
+            schema_version: 1, split: 'train',
+            pages: [stub('done-eu', 'done.test', 'reviewed'),
+                stub('open-eu', 'open.test', 'unresolved')]
+        }));
+        await writeFile(resolve(labelsDir, 'development.labels.json'), JSON.stringify({
+            schema_version: 1, split: 'development',
+            pages: [stub('open-eu', 'open.test', 'reviewed')]
+        }));
+
+        await buildReviewViewer({
+            items: [
+                {capture_id: 'done-eu', group: 'done.test', reason: 'initial label'},
+                {capture_id: 'open-eu', group: 'open.test', reason: 'initial label'}
+            ],
+            capturesDir,
+            outDir,
+            labelsDir
+        });
+
+        const index = await readFile(resolve(outDir, 'index.html'), 'utf8');
+        assert.ok(index.includes('2 captures, 1 reviewed, 1 remaining.'));
+        assert.ok(index.includes('page id open-eu appears in more than one split file'));
+        const openRow = index.slice(index.indexOf('href="open-eu.html"'));
+        assert.ok(openRow.includes('>unresolved<'), 'the first split wins');
+    } finally {
+        await rm(capturesDir, {recursive: true, force: true});
+        await rm(outDir, {recursive: true, force: true});
+        await rm(labelsDir, {recursive: true, force: true});
+    }
+});
+
+test('index warns when a split labels file is unreadable', async () => {
+    const capturesDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-torn-'));
+    const outDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-torn-out-'));
+    const labelsDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-torn-labels-'));
+    try {
+        await writeCapture(capturesDir, 'open-eu', 'open.test', 'initial label');
+        // A torn write of train.labels.json must surface, not silently
+        // count as no stubs while other splits load.
+        await writeFile(resolve(labelsDir, 'train.labels.json'), '{"pages": [');
+        await buildReviewViewer({
+            items: [{capture_id: 'open-eu', group: 'open.test', reason: 'initial label'}],
+            capturesDir,
+            outDir,
+            labelsDir
+        });
+
+        const index = await readFile(resolve(outDir, 'index.html'), 'utf8');
+        assert.ok(index.includes('Warning:'));
+        assert.ok(index.includes('train.labels.json is unreadable and was skipped'));
+    } finally {
+        await rm(capturesDir, {recursive: true, force: true});
+        await rm(outDir, {recursive: true, force: true});
+        await rm(labelsDir, {recursive: true, force: true});
+    }
+});
+
 test('index counts review progress and lists pending captures first', async () => {
     const capturesDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-idx-'));
     const outDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-idx-out-'));

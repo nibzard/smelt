@@ -83,8 +83,22 @@ array. Each record replaces the page stub with the same `id`. A record is
 rejected when no split file holds that id, when its `group` disagrees with
 the labels file, or when the replacement would fail the schema or semantic
 checks. A rejected record leaves its file untouched, and the command exits
-nonzero. Applying over an earlier reviewed record replaces it, which lets a
-reviewer correct their own label. Run `labels:doctor` after every apply.
+nonzero.
+
+A record that would change an already reviewed page is also rejected,
+unless it is identical to the stored record. Pass `--replace` to correct
+your own earlier label. A reviewed page is never demoted back to
+`unresolved`, even with `--replace`; re-open a page by editing the labels
+file by hand. These guards stop a stale records file from an earlier
+session from silently reverting a correction.
+
+Writes are atomic. Each updated file is written to a sibling temp file
+and renamed into place, and a `.bak` copy of the previous content stays
+next to it. A crash or a full disk never truncates a labels file. When a
+batch spans several splits, every file is staged before any file is
+swapped, and a mid-batch failure reports which files were already
+updated. Re-run the same records file to finish the batch: an identical
+re-apply is allowed. Run `labels:doctor` after every apply.
 
 ## Training manifest
 
@@ -103,10 +117,17 @@ and development splits only and never opens the test labels file
 (IDEA.md 3.2.4). The build is all-or-nothing. One unresolved page in
 either split refuses the whole run and names the pages, because the
 compact conversion drops unresolved pages and a quiet subset would
-under-train. Labels and manifest captures must agree exactly, a group may
-not span two splits, and the output directory may not be the labels
-directory. The written manifest also drives the rules loop, which needs
-only the development role.
+under-train. Labels and manifest captures must agree exactly, and a group
+may not span two splits.
+
+The output path is guarded by real path, not spelling. The command
+refuses an output directory that is the labels directory under any
+spelling — a symlink or a `..` segment included — and refuses an output
+path that is the input split manifest or that shares a basename with a
+compact labels file. Outputs are written through temp files and atomic
+renames, so an interrupted build never leaves fresh compact labels beside
+a stale manifest. The written manifest also drives the rules loop, which
+needs only the development role.
 
 ## Review viewer
 
@@ -155,7 +176,9 @@ click it to select the frame element, and the label records it under
 otherwise lands in the child document. Pages link from `index.html`; open
 them directly from the output directory. The index counts reviewed and
 remaining captures and lists pending captures first, so regenerate it after
-every apply session.
+every apply session. When a split labels file is unreadable, or one page
+id appears in more than one split file, the index prints a warning above
+the counts: run `labels:doctor` before trusting the numbers.
 
 ## Steel workflow metric contract
 

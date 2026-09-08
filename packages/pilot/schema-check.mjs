@@ -74,10 +74,21 @@ export function validateSchema(instance, schema, root = schema, at = 'value') {
     }
     if (TYPES.object(instance)) {
         for (const field of schema.required ?? []) {
-            if (!(field in instance)) fail(`is missing required field "${field}"`);
+            // Own properties only; "in" would also count fields inherited
+            // from Object.prototype, such as "toString".
+            if (!Object.prototype.hasOwnProperty.call(instance, field)) {
+                fail(`is missing required field "${field}"`);
+            }
         }
         for (const [key, value] of Object.entries(instance)) {
-            const property = schema.properties?.[key];
+            // Own properties only. A plain lookup like
+            // schema.properties?.[key] resolves "__proto__",
+            // "constructor", and "toString" through the prototype chain,
+            // so those keys would slip past additionalProperties: false.
+            const properties = schema.properties ?? {};
+            const property = Object.prototype.hasOwnProperty.call(properties, key)
+                ? properties[key]
+                : undefined;
             if (!property) {
                 if (schema.additionalProperties === false) {
                     fail(`has unexpected field "${key}"`);

@@ -9,7 +9,7 @@
 // the replacement passes the same schema and semantic checks. Rejected
 // records never touch the file they targeted.
 
-import {readFile, writeFile} from 'node:fs/promises';
+import {copyFile, open, readFile, rename} from 'node:fs/promises';
 import path from 'node:path';
 
 import {validateConsentLabels} from './labels.mjs';
@@ -18,6 +18,39 @@ import {SPLITS} from './prepare-corpus.mjs';
 
 function requireValue(condition, message) {
     if (!condition) throw new TypeError(message);
+}
+
+// Key-sorted stringify, so two records with the same fields in a
+// different order count as the same label.
+function stableStringify(value) {
+    if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
+    if (value !== null && typeof value === 'object') {
+        const keys = Object.keys(value).sort();
+        return `{${keys.map(key => `${JSON.stringify(key)}:${stableStringify(value[key])}`)
+            .join(',')}}`;
+    }
+    return JSON.stringify(value) ?? 'null';
+}
+
+// Stage the new content next to the file, keep one backup of the
+// current content, then swap with an atomic rename. A crash or a full
+// disk mid-write leaves either the old or the new content, never a
+// truncated file; the labels directory is outside version control, so
+// no other recovery path exists.
+async function stageWrite(file, text) {
+    const tmp = `${file}.tmp`;
+    const handle = await open(tmp, 'w');
+    try {
+        await handle.writeFile(text);
+        await handle.sync();
+    } finally {
+        await handle.close();
+    }
+    try {
+        await copyFile(file, `${file}.bak`);
+    } catch (error) {
+        if (error.code !== 'ENOENT') throw error;
+    }
 }
 
 /**
@@ -55,15 +88,20 @@ function problemsIn(dataset, labelsSchema) {
  *
  * A record is rejected when no split file holds its page id, when the id
  * appears more than once across the files, when its group disagrees with
- * the labels file, or when the replacement would fail validation. Rejected
- * records leave the target file untouched.
+ * the labels file, or when the replacement would fail validation. A
+ * record that would change an already reviewed page is rejected unless
+ * it is identical to the stored record or `replaceReviewed` is set; a
+ * reviewed page is never demoted back to `unresolved`. Rejected records
+ * leave the target file untouched.
  *
- * @param {object} input {records, labelsDir, labelsSchemaPath}.
+ * @param {object} input {records, labelsDir, labelsSchemaPath,
+ *   replaceReviewed}.
  * @returns {Promise<object>} {applied, rejected, written}.
  */
 export async function applyLabels(input) {
     const records = input?.records;
     const labelsDir = input?.labelsDir;
+    const replaceReviewed = input?.replaceReviewed === true;
     requireValue(Array.isArray(records) && records.length > 0,
         'Expected at least one label record.');
     requireValue(typeof labelsDir === 'string' && labelsDir.length > 0,
@@ -129,6 +167,21 @@ export async function applyLabels(input) {
                 + `the labels file group ${existing.group}`});
             continue;
         }
+        // A reviewed record is the scarce human-review asset. It is never
+        // demoted, and a change needs the explicit replace option, so a
+        // stale records file from an earlier session cannot silently
+        // revert a correction. An identical re-apply stays allowed.
+        if (existing.label_status === 'reviewed' && record.label_status !== 'reviewed') {
+            rejected.push({id, reason: 'page is already reviewed; labels:apply '
+                + 'never demotes a reviewed page back to unresolved'});
+            continue;
+        }
+        if (existing.label_status === 'reviewed' && !replaceReviewed
+            && stableStringify(record) !== stableStringify(existing)) {
+            rejected.push({id, reason: 'page is already reviewed with a different '
+                + 'label; pass --replace to correct it'});
+            continue;
+        }
         // The record must validate in place before anything is written.
         const trial = datasets[spot.split].pages.slice();
         trial[spot.index] = record;
@@ -141,8 +194,9 @@ export async function applyLabels(input) {
         accepted.push({id, split: spot.split, index: spot.index, record});
     }
 
-    // Swap the accepted records in memory, then write each touched file
-    // only after the whole file passes the checks one more time.
+    // Swap the accepted records in memory. Every touched file must pass
+    // the whole-file checks before anything is staged, so one bad file
+    // cannot leave another half-applied through the write loop.
     const applied = [];
     const written = [];
     const touched = new Map();
@@ -151,16 +205,40 @@ export async function applyLabels(input) {
         if (!touched.has(item.split)) touched.set(item.split, []);
         touched.get(item.split).push(item.id);
     }
+    const failedSplits = [];
     for (const [split, ids] of touched) {
         const problem = problemsIn(datasets[split], labelsSchema);
         if (problem) {
             for (const id of ids) rejected.push({id, reason: problem});
-            continue;
+            failedSplits.push(split);
         }
-        const file = path.join(labelsDir, `${split}.labels.json`);
-        await writeFile(file, `${JSON.stringify(datasets[split], null, 2)}\n`);
-        written.push(file);
-        applied.push(...ids);
+    }
+    for (const split of failedSplits) touched.delete(split);
+
+    // Stage every write first, then swap them in. A staging failure
+    // changes nothing; a swap failure mid-way is reported with exactly
+    // which files were already updated, and re-running the same records
+    // file finishes the batch because an identical re-apply is allowed.
+    try {
+        const staged = [];
+        for (const split of touched.keys()) {
+            const file = path.join(labelsDir, `${split}.labels.json`);
+            const text = `${JSON.stringify(datasets[split], null, 2)}\n`;
+            await stageWrite(file, text);
+            staged.push({file, split});
+        }
+        for (const {file, split} of staged) {
+            await rename(`${file}.tmp`, file);
+            written.push(file);
+            applied.push(...touched.get(split));
+        }
+    } catch (error) {
+        const updated = written.map(file => path.basename(file)).join(', ') || 'none';
+        throw Object.assign(
+            new Error(`${error.message} Updated so far: ${updated}. Re-run the same `
+                + 'records file to finish the batch; each updated file keeps a '
+                + '.bak copy of its previous content.'),
+            {cause: error, partial: {applied, rejected, written}});
     }
     return {applied, rejected, written};
 }
@@ -181,7 +259,8 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(import.met
         const {applied, rejected, written} = await applyLabels({
             records,
             labelsDir: option('labels', 'corpus/manifests/labels'),
-            labelsSchemaPath: option('schema', 'tasks/consent-banners/labels.schema.json')
+            labelsSchemaPath: option('schema', 'tasks/consent-banners/labels.schema.json'),
+            replaceReviewed: process.argv.includes('--replace')
         });
         for (const item of rejected) {
             console.error(`rejected ${item.id ?? '(no id)'}: ${item.reason}`);
