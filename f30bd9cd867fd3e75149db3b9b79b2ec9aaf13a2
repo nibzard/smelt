@@ -1,0 +1,1 @@
+Save the full project state for the private nibzard/smelt repository. Existing history is preserved. npm run verify passed during the preceding review; some tests were skipped. Generated outputs and credentials remain excluded by .gitignore.
