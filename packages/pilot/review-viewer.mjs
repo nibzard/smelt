@@ -257,6 +257,16 @@ const OVERLAY = `
               return marked;
           }
 
+          // The real hit element, before stack walking. elementsFromPoint
+          // returns replayed page content that sits BEHIND the fixed bar,
+          // so a click on a bar control would otherwise toggle the banner
+          // underneath it. When the pointer's actual target is chrome, the
+          // click belongs to the chrome alone.
+          function inChrome(element) {
+              return !!(element && element.closest
+                  && element.closest('#smelt-bar, #smelt-json'));
+          }
+
           // All selectable elements under a point, topmost first. The
           // replayed DOM places each element at its captured bounding box,
           // so a wrapped inline element's box covers its neighbors: the
@@ -293,6 +303,7 @@ const OVERLAY = `
           }
 
           document.addEventListener('mousemove', function (event) {
+              if (inChrome(event.target)) { hover.style.display = 'none'; return; }
               var candidates = candidatesAt(event.clientX, event.clientY);
               if (candidates.length === 0) { hover.style.display = 'none'; return; }
               var target = candidates[0];
@@ -310,6 +321,7 @@ const OVERLAY = `
           // element stays reachable and the walk cannot stack wrong picks.
           var lastClick = null;
           document.addEventListener('click', function (event) {
+              if (inChrome(event.target)) return;
               var candidates = candidatesAt(event.clientX, event.clientY);
               var target = candidates.length > 0 ? candidates[0] : markedRoot(event);
               if (!target) return;
@@ -481,13 +493,21 @@ function neutralizeRemoteLoads(snapshot) {
 // Teacher proposals are advisory reference material for the reviewer. The
 // reader keeps only the fields the panel shows, takes the last record per
 // capture (the same rule the proposals file documents for its consumers),
-// and skips the failure records a batch run writes without labels.
+// and skips the failure records a batch run writes without labels. A torn
+// or corrupt line is skipped, not fatal: the batch writer deliberately
+// keeps such lines on resume (it only adds a separator newline), so a
+// crash-recovered proposals file is a normal input here.
 async function readProposals(proposalsPath) {
     const text = await readFile(proposalsPath, 'utf8');
     const proposals = new Map();
     for (const line of text.split('\n')) {
         if (line.trim() === '') continue;
-        const record = JSON.parse(line);
+        let record;
+        try {
+            record = JSON.parse(line);
+        } catch {
+            continue;
+        }
         if (!record || typeof record.capture_id !== 'string' || !record.labels) continue;
         const root = typeof record.labels.banner_root === 'string'
             && /^e[0-9]+$/.test(record.labels.banner_root)

@@ -152,7 +152,9 @@ test('a second run resumes and labels nothing new', async () => {
 
         assert.equal(second.labeled, 0);
         assert.equal(second.resumed, 2);
-        assert.equal(second.spentUsd, 0);
+        // A resumed summary reports the spend the whole file represents,
+        // so the cost cap of the next run covers what was already paid.
+        assert.equal(second.spentUsd, 0.003);
         assert.equal(await readFile(outPath, 'utf8'), before);
         assert.equal(first.labeled, 2);
     } finally {
@@ -176,6 +178,68 @@ test('the cost cap stops the batch once spending reaches it', async () => {
         assert.equal(summary.spentUsd, 20);
         assert.equal(summary.stopped, 'cost');
         assert.equal((await linesOf(outPath)).length, 2);
+    } finally {
+        await rm(dir, {recursive: true, force: true});
+    }
+});
+
+test('the cost cap counts the spend earlier runs wrote to the file', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'smelt-teacher-batch-'));
+    try {
+        await writeCaptures(dir, ['a-example', 'b-example', 'c-example']);
+        const outPath = path.join(dir, 'proposals.jsonl');
+        // Each call costs 10 USD; the first run stops at the 15 USD cap
+        // after two calls.
+        const first = await runTeacherBatch({adapter: fakeAdapter(),
+            capturesDir: dir, items: items(['a-example', 'b-example', 'c-example']),
+            outPath, fetchImpl: fetchReturning(POSITIVE,
+                {inputTokens: 10_000_000, outputTokens: 0}),
+            maxCostUsd: 15, delayMs: 0});
+        assert.equal(first.labeled, 2);
+        assert.equal(first.stopped, 'cost');
+
+        // A resume with a fresh budget would buy one more call and stop;
+        // the seeded spend keeps the same cap from double-spending it.
+        const second = await runTeacherBatch({adapter: fakeAdapter(),
+            capturesDir: dir, items: items(['a-example', 'b-example', 'c-example']),
+            outPath, fetchImpl: fetchReturning(POSITIVE,
+                {inputTokens: 10_000_000, outputTokens: 0}),
+            maxCostUsd: 15, delayMs: 0});
+        assert.equal(second.labeled, 0);
+        assert.equal(second.resumed, 2);
+        assert.equal(second.spentUsd, 20);
+        assert.equal(second.stopped, 'cost');
+
+        // A raised cap resumes and pays only for the new call.
+        const third = await runTeacherBatch({adapter: fakeAdapter(),
+            capturesDir: dir, items: items(['a-example', 'b-example', 'c-example']),
+            outPath, fetchImpl: fetchReturning(POSITIVE,
+                {inputTokens: 10_000_000, outputTokens: 0}),
+            maxCostUsd: 25, delayMs: 0});
+        assert.equal(third.labeled, 1);
+        assert.equal(third.spentUsd, 30);
+    } finally {
+        await rm(dir, {recursive: true, force: true});
+    }
+});
+
+test('failed calls also observe the inter-call delay', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'smelt-teacher-batch-'));
+    try {
+        await writeCaptures(dir, ['a-example', 'b-example']);
+        const outPath = path.join(dir, 'proposals.jsonl');
+        const started = Date.now();
+        const summary = await runTeacherBatch({adapter: fakeAdapter(),
+            capturesDir: dir, items: items(['a-example', 'b-example']),
+            outPath, fetchImpl: async () => ({ok: false, status: 503,
+                text: async () => 'upstream'}),
+            delayMs: 75});
+        const elapsed = Date.now() - started;
+
+        assert.equal(summary.failed, 2);
+        // Two failures with a 75 ms pause each: at least 150 ms. setTimeout
+        // never fires early, so the bound is safe on a loaded machine.
+        assert.ok(elapsed >= 150, `elapsed ${elapsed} ms`);
     } finally {
         await rm(dir, {recursive: true, force: true});
     }
@@ -346,15 +410,46 @@ test('the CLI refuses an unknown teacher and a missing key', async () => {
         const cli = new URL('../teacher-labels-cli.mjs', import.meta.url).pathname;
         const queuePath = path.join(dir, 'queue.json');
         await writeFile(queuePath, JSON.stringify({schemaVersion: 1, items: []}));
+        const manifestPath = path.join(dir, 'splits.json');
+        await writeFile(manifestPath, JSON.stringify(
+            {splits: {test: [{id: 'x-example'}]}}));
         await assert.rejects(exec(process.execPath,
-            [cli, '--queue', queuePath, '--teacher', 'openai',
-             '--out', path.join(dir, 'p.jsonl')]),
+            [cli, '--queue', queuePath, '--manifest', manifestPath,
+             '--teacher', 'openai', '--out', path.join(dir, 'p.jsonl')]),
             /Unknown teacher/);
+        await assert.rejects(exec(process.execPath,
+            [cli, '--queue', queuePath, '--manifest', manifestPath,
+             '--teacher', 'anthropic', '--out', path.join(dir, 'p.jsonl')],
+            {env: {...process.env, ANTHROPIC_API_KEY: ''}}),
+            /ANTHROPIC_API_KEY/);
+    } finally {
+        await rm(dir, {recursive: true, force: true});
+    }
+});
+
+test('the CLI refuses a paid run without a test-split manifest', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'smelt-teacher-cli-man-'));
+    try {
+        const cli = new URL('../teacher-labels-cli.mjs', import.meta.url).pathname;
+        const queuePath = path.join(dir, 'queue.json');
+        await writeFile(queuePath, JSON.stringify({schemaVersion: 1, items: []}));
+
+        // No manifest at all: nothing is provably excluded from teaching.
         await assert.rejects(exec(process.execPath,
             [cli, '--queue', queuePath, '--teacher', 'anthropic',
              '--out', path.join(dir, 'p.jsonl')],
-            {env: {...process.env, ANTHROPIC_API_KEY: ''}}),
-            /ANTHROPIC_API_KEY/);
+            {env: {...process.env, ANTHROPIC_API_KEY: 'k'}}),
+            /Missing --manifest/);
+
+        // A labels file (pages, no splits) must not pass for the split
+        // manifest: the test captures would silently go to the teacher.
+        const labelsShape = path.join(dir, 'test.labels.json');
+        await writeFile(labelsShape, JSON.stringify({split: 'test', pages: []}));
+        await assert.rejects(exec(process.execPath,
+            [cli, '--queue', queuePath, '--manifest', labelsShape,
+             '--teacher', 'anthropic', '--out', path.join(dir, 'p.jsonl')],
+            {env: {...process.env, ANTHROPIC_API_KEY: 'k'}}),
+            /no splits\.test array/);
     } finally {
         await rm(dir, {recursive: true, force: true});
     }

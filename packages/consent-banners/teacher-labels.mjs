@@ -49,20 +49,23 @@ async function loadCapture(capturesDir, captureId) {
 // is the interrupt itself and is dropped; a corrupt line in the middle is
 // counted, and the capture it held is re-labeled, so one page can hold a
 // corrupt line followed by a fresh record. The consumer takes the last
-// record per capture id.
+// record per capture id. The recorded spend is summed too, so the cost
+// cap of a resumed batch covers what earlier runs already paid, not only
+// the new calls.
 async function readDoneIds(outPath) {
     let text;
     try {
         text = await readFile(outPath, 'utf8');
     } catch (error) {
         if (error.code === 'ENOENT') return {done: new Set(), corrupt: 0,
-            endsWithNewline: true};
+            spentUsd: 0, endsWithNewline: true};
         throw error;
     }
     const lines = text.split('\n');
     if (lines.length > 0 && lines[lines.length - 1].trim() === '') lines.pop();
     const done = new Set();
     let corrupt = 0;
+    let spentUsd = 0;
     for (const line of lines) {
         if (line.trim() === '') continue;
         try {
@@ -70,11 +73,14 @@ async function readDoneIds(outPath) {
             if (record && typeof record.capture_id === 'string' && record.labels) {
                 done.add(record.capture_id);
             }
+            if (record && Number.isFinite(record.costUsd) && record.costUsd > 0) {
+                spentUsd = Math.round((spentUsd + record.costUsd) * 1e6) / 1e6;
+            }
         } catch {
             corrupt += 1;
         }
     }
-    return {done, corrupt, endsWithNewline: text.endsWith('\n')};
+    return {done, corrupt, spentUsd, endsWithNewline: text.endsWith('\n')};
 }
 
 function estimateCatalogCosts(serializations) {
@@ -189,14 +195,21 @@ export async function runTeacherBatch(input) {
         await appendFile(outPath, `${JSON.stringify(record)}\n`);
         if (typeof input?.onRecord === 'function') input.onRecord(record);
     };
-    const {done, corrupt, endsWithNewline} = await readDoneIds(outPath);
+    const {done, corrupt, spentUsd: earlierSpend, endsWithNewline}
+        = await readDoneIds(outPath);
     summary.corruptLines = corrupt;
+    summary.spentUsd = earlierSpend;
     await mkdir(path.dirname(outPath), {recursive: true});
     // A torn line has no trailing newline; without this separator the next
     // appended record would merge into it and become unreadable too.
     if (!endsWithNewline) await appendFile(outPath, '\n');
 
     let consecutiveErrors = 0;
+    // The delay applies to failures as much as successes: a failing
+    // endpoint must not be retried at full speed.
+    const pause = async () => {
+        if (delayMs > 0) await sleep(delayMs);
+    };
     for (const captureId of ids) {
         if (excludeIds.has(captureId)) {
             summary.skippedExcluded += 1;
@@ -229,6 +242,7 @@ export async function runTeacherBatch(input) {
                 summary.stopped = 'errors';
                 break;
             }
+            await pause();
             continue;
         }
         try {
@@ -249,9 +263,10 @@ export async function runTeacherBatch(input) {
                 summary.stopped = 'errors';
                 break;
             }
+            await pause();
             continue;
         }
-        if (delayMs > 0) await sleep(delayMs);
+        await pause();
     }
     return summary;
 }

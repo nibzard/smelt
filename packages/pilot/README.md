@@ -149,13 +149,16 @@ Every page links to its neighbors and to the index, so a review session
 walks the queue without returning to the index after each capture.
 
 Pass `--proposals path/to/proposals.jsonl` to show teacher proposals
-alongside the pages (the file `teacher:labels` writes). A page with a
+alongside the pages (the file `teacher-labels` writes). A page with a
 proposal gains a collapsed advisory panel in the control bar. Open it
 only if you want the teacher's answer: it shows the proposed banner
 root, kind, jurisdiction, confidence, and the verification verdict, and
 it can outline the proposed root on the page. A proposal never selects
 anything and never enters the copied record — your clicks alone build
-the label. Review the page first and open the panel when unsure.
+the label. Review the page first and open the panel when unsure. A torn
+or corrupt line in the proposals file is skipped: the file a crashed and
+resumed batch leaves behind still renders, and the last valid record per
+capture wins.
 
 Each page rebuilds the top-frame DOM of the capture and positions every
 element at its captured rectangle, composed through nested ancestors. Hover
@@ -169,7 +172,10 @@ complete reviewed record — `id`, `group`, `label_status`, `has_banner`,
 `evidence`, `confidence`, and `review_notes` — ready for `labels:apply`, or
 for a manual paste over the page's stub in the split label file. The record passes
 `validateConsentLabels` as-is; a browser test in
-`test/review-viewer.browser.test.mjs` keeps that contract. The group comes
+`test/review-viewer.browser.test.mjs` keeps that contract. Install
+Chromium locally (`npx playwright install chromium`) and run that suite
+before a review session: CI has no browser, so those tests skip there
+and only the local run checks the click behavior. The group comes
 from the labels file, so the record cannot rewrite the group that split the
 corpus even when the queue disagrees. Clicks on the control bar, the JSON
 box, and blank page areas never change the selection.

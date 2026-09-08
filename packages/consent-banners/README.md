@@ -159,16 +159,21 @@ the two-vendor ensemble stays separable.
 Pass `--manifest` so the frozen test captures are excluded: the pilot test
 pages stay teacher-free and 100 percent human-verified (IDEA.md 3.3.6).
 The manifest lists capture ids and paths, not labels, so the exclusion
-never opens the test labels file.
+never opens the test labels file. A run without `--manifest` refuses to
+start, and so does a file without a `splits.test` array — a wrong or
+stale manifest path must stop the batch, not silently teach the test
+pages. Only `--dry-run` runs without a manifest.
 
 The batch is resumable. A capture with a full record in the output file is
 skipped, so an interrupted run continues where it stopped. A torn final
 line from a crash is dropped, its capture is labeled again, and the
 consumer takes the last record per capture id. Spending stops at the cost
 cap (`--max-cost`, default 40 USD; the call that crosses the cap still
-completes, so spending can overshoot by one call). The batch stops after
-five consecutive failures and labels at most `--limit` pages. Every call
-waits `--delay-ms`, 500 by default.
+completes, so spending can overshoot by one call). The cap counts the
+spend already recorded in the output file, so a resumed batch cannot
+double-spend past the same cap. The batch stops after five consecutive
+failures and labels at most `--limit` pages. Every call waits
+`--delay-ms`, 500 by default, and failed calls wait too.
 
 `--dry-run` needs no API key and no teacher. It serializes every capture
 and prints the byte totals, the caps in force, the count of pages that

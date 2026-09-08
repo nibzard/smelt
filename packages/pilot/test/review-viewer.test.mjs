@@ -552,6 +552,47 @@ test('a proposals file renders a collapsed advisory panel', async () => {
     }
 });
 
+test('torn and corrupt proposals lines do not sink the build', async () => {
+    const capturesDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-torn-'));
+    const outDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-torn-out-'));
+    try {
+        await writeCapture(capturesDir, 'crash-page', 'example.com', 'initial label');
+        // The exact file a crash and resume leave behind: an older valid
+        // record, a corrupt middle line the batch refuses to rewrite, the
+        // fresh valid record, and a torn final line with no newline.
+        const proposalsPath = resolve(outDir, '..', 'torn-proposals.jsonl');
+        await writeFile(proposalsPath, [
+            JSON.stringify({capture_id: 'crash-page', adapter: {id: 'fake-teacher'},
+                labels: {has_banner: false, banner_root: null, banner_kind: 'unknown',
+                    jurisdiction: 'unknown', confidence: 0.6, evidence: []},
+                verification: {status: 'pass', issues: []}}),
+            '{"capture_id": "crash-p',
+            JSON.stringify({capture_id: 'crash-page', adapter: {id: 'fake-teacher'},
+                labels: {has_banner: true, banner_root: 'e3', banner_kind: 'dialog',
+                    jurisdiction: 'eea', confidence: 0.9, evidence: []},
+                verification: {status: 'pass', issues: []}}),
+            '{"capture_id": "crash-page", "labels'
+        ].join('\n'));
+        await buildReviewViewer({
+            items: [{capture_id: 'crash-page', group: 'example.com'}],
+            capturesDir,
+            outDir,
+            proposalsPath
+        });
+
+        // The last valid record wins: the positive resume answer, not the
+        // older negative.
+        const page = await readFile(resolve(outDir, 'crash-page.html'), 'utf8');
+        assert.ok(page.includes('<details id="smelt-proposal">'));
+        assert.ok(page.includes('data-smelt-root="e3"'));
+        assert.ok(!page.includes('no banner on this page'));
+    } finally {
+        await rm(capturesDir, {recursive: true, force: true});
+        await rm(outDir, {recursive: true, force: true});
+        await rm(resolve(outDir, '..', 'torn-proposals.jsonl'), {force: true});
+    }
+});
+
 test('a missing proposals file fails the build', async () => {
     const capturesDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-prop-err-'));
     const outDir = await mkdtemp(resolve(tmpdir(), 'smelt-viewer-prop-err-out-'));

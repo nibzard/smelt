@@ -52,7 +52,8 @@ function snapshot({withIframe = false, nested = false, overlap = false} = {}) {
         frames: [{id: 'f0', accessible: true}], elements};
 }
 
-function features({withIframe = false, nested = false, overlap = false} = {}) {
+function features({withIframe = false, nested = false, overlap = false,
+    topBanner = false} = {}) {
     const rect = (x, y, width, height) => ({
         rect: {x, y, top: y, right: x + width, bottom: y + height, left: x, width, height},
         display: 'block', visibility: 'visible', opacity: 1, position: 'static', zIndex: null
@@ -66,6 +67,12 @@ function features({withIframe = false, nested = false, overlap = false} = {}) {
         elements.push({id: 'e3', layout: {rect: rect(10, 120, 600, 200).rect,
             display: 'block', visibility: 'visible', opacity: 1,
             position: 'absolute', zIndex: 5}});
+    } else if (topBanner) {
+        // A banner pinned to the very top: the fixed control bar covers
+        // it, but elementsFromPoint still lists it under the bar.
+        elements.push({id: 'e3', layout: {rect: rect(0, 0, 1200, 120).rect,
+            display: 'block', visibility: 'visible', opacity: 1,
+            position: 'fixed', zIndex: 2147483647}});
     } else if (overlap) {
         elements.push({id: 'e5', layout: {rect: rect(20, 150, 160, 24).rect,
             display: 'inline', visibility: 'visible', opacity: 1,
@@ -365,6 +372,47 @@ test('browser: a teacher proposal outlines a root without selecting it',
             // proposal fields, a clean negative.
             const label = await copiedLabel(page);
             assert.equal(label.has_banner, false);
+            assert.deepEqual(label.acceptable_roots, []);
+            assert.deepEqual(validateConsentLabels(datasetFor(label)), []);
+        } finally {
+            await browser.close();
+            await cleanup();
+        }
+    });
+
+test('browser: clicks on the bar and the JSON box never select behind them',
+    {skip: !playwright}, async t => {
+        const {pagePath, cleanup} = await writeViewerPage('example-com-eu');
+        const browser = await launchBrowser(t);
+        if (!browser) return void await cleanup();
+        try {
+            const page = await browser.newPage();
+            await page.goto(`file://${pagePath}`);
+            // The JSON box is fixed over the page content once visible.
+            // elementsFromPoint lists the replayed elements behind it, so
+            // a click inside the box (the reviewer selects the JSON text
+            // to copy it by hand) is the regression probe.
+            await page.click('#smelt-copy');
+            const overlap = await page.evaluate(() => {
+                const box = document.getElementById('smelt-json')
+                    .getBoundingClientRect();
+                const main = document.querySelector('[data-smelt-replay-id="e2"]')
+                    .getBoundingClientRect();
+                return box.top < main.bottom && box.bottom > main.top;
+            });
+            assert.equal(overlap, true);
+
+            await page.click('#smelt-json', {position: {x: 40, y: 12}});
+            await page.click('#smelt-kind');
+            await page.mouse.move(300, 130);
+            const hoverShown = await page.evaluate(() =>
+                document.getElementById('smelt-hover').style.display);
+
+            assert.equal(await page.locator('#smelt-selection').textContent(), '');
+            assert.equal(hoverShown, 'none');
+            await page.click('#smelt-copy');
+            const label = JSON.parse(
+                await page.locator('#smelt-json').textContent());
             assert.deepEqual(label.acceptable_roots, []);
             assert.deepEqual(validateConsentLabels(datasetFor(label)), []);
         } finally {

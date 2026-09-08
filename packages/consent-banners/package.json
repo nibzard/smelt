@@ -15,6 +15,7 @@
     "./model.smelt.json": "./model.smelt.json",
     "./train": "./train.mjs",
     "./teacher": "./teacher.mjs",
+    "./teacher-labels": "./teacher-labels.mjs",
     "./loop": "./loop.mjs",
     "./watch": "./watch.mjs"
   },
@@ -36,6 +37,8 @@
     "train.mjs",
     "train-cli.mjs",
     "teacher.mjs",
+    "teacher-labels.mjs",
+    "teacher-labels-cli.mjs",
     "loop.mjs",
     "loop-cli.mjs",
     "watch.mjs"

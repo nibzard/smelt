@@ -9,7 +9,15 @@ import {buildReviewViewer} from './review-viewer.mjs';
 
 function option(name, fallback) {
     const index = process.argv.indexOf(`--${name}`);
-    return index === -1 ? fallback : process.argv[index + 1];
+    if (index === -1) return fallback;
+    const value = process.argv[index + 1];
+    // A flag with no value, or one whose value is the next flag, is a
+    // command-line typo. --proposals treated as absent would silently
+    // render every advisory panel missing, so fail loudly instead.
+    if (typeof value !== 'string' || value.startsWith('--')) {
+        throw new Error(`--${name} needs a value.`);
+    }
+    return value;
 }
 
 try {

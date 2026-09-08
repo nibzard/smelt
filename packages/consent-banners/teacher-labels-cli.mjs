@@ -14,8 +14,9 @@
 //     --out runs/teacher-labels/anthropic.jsonl
 //
 // The output holds proposals for the human reviewer, never labels. Pass
-// --manifest so the frozen test captures stay teacher-free, and --dry-run
-// to serialize and estimate the cost without an API key.
+// --manifest so the frozen test captures stay teacher-free; a real run
+// refuses to start without it, and --dry-run serializes and estimates the
+// cost without an API key.
 
 import {readFile} from 'node:fs/promises';
 import path from 'node:path';
@@ -45,13 +46,34 @@ async function readJson(file) {
 
 // The split manifest lists capture ids and paths, not labels, so reading
 // it keeps the frozen test set out of teacher reach without opening the
-// test labels file (IDEA.md 3.2.4 and 3.3.6).
-async function testCaptureIds(manifestPath) {
-    if (typeof manifestPath !== 'string' || manifestPath.length === 0) return [];
+// test labels file (IDEA.md 3.2.4 and 3.3.6). A manifest without a test
+// split array is refused rather than treated as "nothing to exclude": a
+// wrong or stale manifest path must stop the batch, not silently send the
+// frozen test pages to the vendor.
+async function testCaptureIds(manifestPath, requireSplit) {
+    if (typeof manifestPath !== 'string' || manifestPath.length === 0) {
+        if (requireSplit) {
+            throw new Error('Missing --manifest. Pass the split manifest so the '
+                + 'frozen test captures are excluded; without it every queue '
+                + 'item, test pages included, goes to the teacher.');
+        }
+        return [];
+    }
     const manifest = await readJson(manifestPath);
-    return (manifest?.splits?.test ?? [])
+    const testSplit = manifest?.splits?.test;
+    if (requireSplit && !Array.isArray(testSplit)) {
+        throw new Error(`${manifestPath} has no splits.test array; it is not the `
+            + 'split manifest this command needs, so no capture is provably '
+            + 'excluded from teaching.');
+    }
+    const ids = (Array.isArray(testSplit) ? testSplit : [])
         .map(entry => entry?.id)
         .filter(id => typeof id === 'string');
+    if (ids.length === 0) {
+        console.error('Warning: the manifest declares no test captures; '
+            + 'nothing was excluded from teaching.');
+    }
+    return ids;
 }
 
 function buildTeacher(name) {
@@ -63,11 +85,11 @@ function buildTeacher(name) {
 
 const USAGE = `Usage: node teacher-labels-cli.mjs --teacher anthropic|gemini
   --out path/to/proposals.jsonl
+  --manifest corpus/manifests/splits.json
   [--captures corpus/captures] [--queue tasks/consent-banners/review-queue.json]
-  [--manifest corpus/manifests/splits.json]
   [--max-cost 40] [--limit 0] [--delay-ms 500]
   [--max-chars 120000] [--max-elements 2500]
-  [--dry-run]  serialize and estimate cost; needs no API key`;
+  [--dry-run]  serialize and estimate cost; needs no API key, no --manifest`;
 
 try {
     const dryRun = process.argv.includes('--dry-run');
@@ -87,7 +109,7 @@ try {
     if (!Array.isArray(queue?.items)) {
         throw new Error('The queue file holds no items array.');
     }
-    const excludeIds = await testCaptureIds(option('manifest'));
+    const excludeIds = await testCaptureIds(option('manifest'), !dryRun);
     const summary = await runTeacherBatch({
         adapter: dryRun ? null : buildTeacher(teacherName),
         capturesDir: option('captures', 'corpus/captures'),
